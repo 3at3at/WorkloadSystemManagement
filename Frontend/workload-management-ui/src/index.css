@@ -1,0 +1,22 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Manrope", sans-serif;
+  background: #0f172a;
+  color: #1f2937;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+input::placeholder {
+  color: #94a3b8;
+}

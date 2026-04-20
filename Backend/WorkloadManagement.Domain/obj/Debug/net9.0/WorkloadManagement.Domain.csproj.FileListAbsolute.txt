@@ -1,0 +1,11 @@
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\bin\Debug\net9.0\WorkloadManagement.Domain.deps.json
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\bin\Debug\net9.0\WorkloadManagement.Domain.dll
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\bin\Debug\net9.0\WorkloadManagement.Domain.pdb
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\WorkloadManagement.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\WorkloadManagement.Domain.AssemblyInfoInputs.cache
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\WorkloadManagement.Domain.AssemblyInfo.cs
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\WorkloadManagement.Domain.csproj.CoreCompileInputs.cache
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\WorkloadManagement.Domain.dll
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\refint\WorkloadManagement.Domain.dll
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\WorkloadManagement.Domain.pdb
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\ref\WorkloadManagement.Domain.dll

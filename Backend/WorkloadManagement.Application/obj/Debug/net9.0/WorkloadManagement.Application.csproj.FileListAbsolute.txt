@@ -1,0 +1,15 @@
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\bin\Debug\net9.0\WorkloadManagement.Application.deps.json
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\bin\Debug\net9.0\WorkloadManagement.Application.dll
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\bin\Debug\net9.0\WorkloadManagement.Application.pdb
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\bin\Debug\net9.0\WorkloadManagement.Domain.dll
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\bin\Debug\net9.0\WorkloadManagement.Domain.pdb
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\obj\Debug\net9.0\WorkloadManagement.Application.csproj.AssemblyReference.cache
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\obj\Debug\net9.0\WorkloadManagement.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\obj\Debug\net9.0\WorkloadManagement.Application.AssemblyInfoInputs.cache
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\obj\Debug\net9.0\WorkloadManagement.Application.AssemblyInfo.cs
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\obj\Debug\net9.0\WorkloadManagement.Application.csproj.CoreCompileInputs.cache
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\obj\Debug\net9.0\Workload.383F9EF7.Up2Date
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\obj\Debug\net9.0\WorkloadManagement.Application.dll
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\obj\Debug\net9.0\refint\WorkloadManagement.Application.dll
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\obj\Debug\net9.0\WorkloadManagement.Application.pdb
+C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Application\obj\Debug\net9.0\ref\WorkloadManagement.Application.dll

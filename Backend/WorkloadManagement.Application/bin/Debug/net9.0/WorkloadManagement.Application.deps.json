@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "WorkloadManagement.Application/1.0.0": {
+        "dependencies": {
+          "WorkloadManagement.Domain": "1.0.0"
+        },
+        "runtime": {
+          "WorkloadManagement.Application.dll": {}
+        }
+      },
+      "WorkloadManagement.Domain/1.0.0": {
+        "runtime": {
+          "WorkloadManagement.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "WorkloadManagement.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "WorkloadManagement.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
