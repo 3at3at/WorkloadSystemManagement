@@ -52,23 +52,27 @@ const MemberDashboard = () => {
       <div style={styles.grid}>
         <StatCard
           title="My Tasks"
-          value={loading ? "..." : stats.myTasks}
+          value={stats.myTasks}
           subtitle="Tasks currently assigned to you"
+          loading={loading}
         />
         <StatCard
           title="New Tasks"
-          value={loading ? "..." : stats.newTasks}
+          value={stats.newTasks}
           subtitle="Tasks still in New status"
+          loading={loading}
         />
         <StatCard
           title="Weekly Workload"
-          value={loading ? "..." : stats.weeklyWorkload}
+          value={stats.weeklyWorkload}
           subtitle="Your current weekly workload score"
+          loading={loading}
         />
         <StatCard
           title="Workload Status"
-          value={loading ? "..." : stats.workloadStatus}
+          value={stats.workloadStatus}
           subtitle="Your workload condition this week"
+          loading={loading}
         />
       </div>
 

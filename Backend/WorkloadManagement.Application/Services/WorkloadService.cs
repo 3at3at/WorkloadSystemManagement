@@ -188,10 +188,10 @@ namespace WorkloadManagement.Application.Services
 
         private static string GetWorkloadStatus(decimal totalWeight)
         {
-            if (totalWeight >= 36)
+            if (totalWeight >= 20)
                 return "Overloaded";
 
-            if (totalWeight >= 21)
+            if (totalWeight >= 10)
                 return "Balanced";
 
             return "Available";

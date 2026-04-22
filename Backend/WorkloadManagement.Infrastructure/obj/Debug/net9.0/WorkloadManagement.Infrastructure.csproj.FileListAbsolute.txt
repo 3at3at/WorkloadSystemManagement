@@ -17,3 +17,4 @@ C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Infras
 C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Infrastructure\obj\Debug\net9.0\WorkloadManagement.Infrastructure.pdb
 C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Infrastructure\obj\Debug\net9.0\WorkloadManagement.Infrastructure.genruntimeconfig.cache
 C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Infrastructure\obj\Debug\net9.0\ref\WorkloadManagement.Infrastructure.dll
+C:\Users\user\Desktop\WorkloadManagementSystem\backend\WorkloadManagement.Infrastructure\obj\Debug\net9.0\WorkloadManagement.Infrastructure.sourcelink.json

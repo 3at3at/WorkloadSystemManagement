@@ -39,6 +39,7 @@ const TasksPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [loadingTaskDetails, setLoadingTaskDetails] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [confirmState, setConfirmState] = useState({
     open: false,
     title: "",
@@ -49,11 +50,22 @@ const TasksPage = () => {
   const [toast, setToast] = useState(null);
   const [openStatusMenuId, setOpenStatusMenuId] = useState(null);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+
   const [formData, setFormData] = useState(initialFormData);
 
   const isAdmin = user?.role === "Admin";
   const isTeamLeader = user?.role === "TeamLeader";
   const isMember = user?.role === "Member";
+  const isCompact = windowWidth < 820;
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const showToast = (message, type = "success") => {
     setToast({ id: Date.now(), message, type });
@@ -65,10 +77,25 @@ const TasksPage = () => {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const activeTasks = useMemo(
-    () => tasks.filter((task) => normalizeStatus(task.status) !== "Completed"),
-    [tasks]
-  );
+  const visibleTasks = useMemo(() => {
+    return tasks
+      .filter((task) => normalizeStatus(task.status) !== "Completed")
+      .filter((task) => {
+        const normalizedStatus = normalizeStatus(task.status);
+        const matchesSearch =
+          task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          task.assignedTo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          task.createdBy?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesPriority =
+          priorityFilter === "All" || task.priority === priorityFilter;
+
+        const matchesStatus =
+          statusFilter === "All" || normalizedStatus === statusFilter;
+
+        return matchesSearch && matchesPriority && matchesStatus;
+      });
+  }, [tasks, searchTerm, priorityFilter, statusFilter]);
 
   const canManageTask = (task) => {
     if (isAdmin) return true;
@@ -333,6 +360,12 @@ const TasksPage = () => {
 
   return (
     <DashboardShell user={user} title={isMember ? "My Tasks" : "Tasks Management"}>
+      <style>{`
+        input::placeholder {
+          color: rgba(255,255,255,0.55);
+        }
+      `}</style>
+
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -374,16 +407,54 @@ const TasksPage = () => {
         )}
       </div>
 
+      <div style={styles.filtersCard}>
+        <input
+          style={{ ...styles.filterInput, flex: 1 }}
+          type="text"
+          placeholder="Search by title, assignee, or creator..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        <select
+          style={styles.filterInput}
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+        >
+          <option style={styles.selectOption} value="All">All Priorities</option>
+          <option style={styles.selectOption} value="Low">Low</option>
+          <option style={styles.selectOption} value="Medium">Medium</option>
+          <option style={styles.selectOption} value="High">High</option>
+          <option style={styles.selectOption} value="Critical">Critical</option>
+        </select>
+
+        <select
+          style={styles.filterInput}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option style={styles.selectOption} value="All">All Statuses</option>
+          <option style={styles.selectOption} value="New">New</option>
+          <option style={styles.selectOption} value="In Progress">In Progress</option>
+          <option style={styles.selectOption} value="Blocked">Blocked</option>
+        </select>
+      </div>
+
       {pageError && <div style={styles.errorBox}>{pageError}</div>}
 
       <div style={styles.card}>
         {loading ? (
           <div style={styles.loadingText}>Loading tasks...</div>
-        ) : activeTasks.length === 0 ? (
-          <div style={styles.emptyText}>No active tasks found.</div>
+        ) : visibleTasks.length === 0 ? (
+          <div style={styles.emptyText}>No active tasks match your filters.</div>
         ) : (
-          <div style={styles.grid}>
-            {activeTasks.map((task) => (
+          <div
+            style={{
+              ...styles.grid,
+              ...(isCompact ? styles.gridCompact : {}),
+            }}
+          >
+            {visibleTasks.map((task) => (
               <motion.div
                 key={task.id}
                 style={styles.taskCard}
@@ -439,27 +510,27 @@ const TasksPage = () => {
                       </button>
 
                       {openStatusMenuId === task.id && (
-  <div style={styles.statusMenu}>
-    <button
-      style={styles.statusMenuItem}
-      onClick={() => handleChangeOwnStatus(task.id, 1)}
-    >
-      Set New
-    </button>
-    <button
-      style={styles.statusMenuItem}
-      onClick={() => handleChangeOwnStatus(task.id, 2)}
-    >
-      Set In Progress
-    </button>
-    <button
-      style={styles.statusMenuItem}
-      onClick={() => handleChangeOwnStatus(task.id, 3)}
-    >
-      Set Blocked
-    </button>
-  </div>
-)}
+                        <div style={styles.statusMenu}>
+                          <button
+                            style={styles.statusMenuItem}
+                            onClick={() => handleChangeOwnStatus(task.id, 1)}
+                          >
+                            Set New
+                          </button>
+                          <button
+                            style={styles.statusMenuItem}
+                            onClick={() => handleChangeOwnStatus(task.id, 2)}
+                          >
+                            Set In Progress
+                          </button>
+                          <button
+                            style={styles.statusMenuItem}
+                            onClick={() => handleChangeOwnStatus(task.id, 3)}
+                          >
+                            Set Blocked
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -555,9 +626,9 @@ const TasksPage = () => {
                         onChange={handleChange}
                         required
                       >
-                        <option value="">Select user</option>
+                        <option style={styles.selectOption} value="">Select user</option>
                         {assignableUsers.map((item) => (
-                          <option key={item.id} value={item.id}>
+                          <option style={styles.selectOption} key={item.id} value={item.id}>
                             {item.fullName} ({item.role})
                           </option>
                         ))}
@@ -587,10 +658,10 @@ const TasksPage = () => {
                         value={formData.priority}
                         onChange={handleChange}
                       >
-                        <option value={1}>Low</option>
-                        <option value={2}>Medium</option>
-                        <option value={3}>High</option>
-                        <option value={4}>Critical</option>
+                        <option style={styles.selectOption} value={1}>Low</option>
+                        <option style={styles.selectOption} value={2}>Medium</option>
+                        <option style={styles.selectOption} value={3}>High</option>
+                        <option style={styles.selectOption} value={4}>Critical</option>
                       </select>
                     </div>
 
@@ -602,9 +673,9 @@ const TasksPage = () => {
                         value={formData.complexity}
                         onChange={handleChange}
                       >
-                        <option value={1}>Easy</option>
-                        <option value={2}>Medium</option>
-                        <option value={3}>Hard</option>
+                        <option style={styles.selectOption} value={1}>Easy</option>
+                        <option style={styles.selectOption} value={2}>Medium</option>
+                        <option style={styles.selectOption} value={3}>Hard</option>
                       </select>
                     </div>
                   </div>
@@ -812,6 +883,25 @@ const styles = {
     color: "rgba(255,255,255,0.72)",
     fontSize: "15px",
   },
+  filtersCard: {
+    display: "grid",
+    gridTemplateColumns: "minmax(220px, 1fr) 180px 180px",
+    gap: "12px",
+  },
+  filterInput: {
+    padding: "14px 16px",
+    borderRadius: "16px",
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.08)",
+    color: "#ffffff",
+    fontSize: "14px",
+    outline: "none",
+    minHeight: "50px",
+  },
+  selectOption: {
+    color: "#0f172a",
+    background: "#ffffff",
+  },
   card: {
     background: "rgba(255,255,255,0.08)",
     border: "1px solid rgba(255,255,255,0.08)",
@@ -824,6 +914,9 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
     gap: "18px",
+  },
+  gridCompact: {
+    gridTemplateColumns: "1fr",
   },
   taskCard: {
     padding: "22px",
@@ -838,12 +931,14 @@ const styles = {
     alignItems: "flex-start",
     gap: "12px",
     marginBottom: "12px",
+    flexWrap: "wrap",
   },
   taskTitle: {
     color: "#fff",
     fontSize: "20px",
     fontWeight: "800",
     lineHeight: 1.35,
+    margin: 0,
   },
   metaRow: {
     display: "flex",
@@ -1077,6 +1172,7 @@ const styles = {
     fontSize: "15px",
     outline: "none",
     background: "#ffffff",
+    color: "#0f172a",
     minHeight: "54px",
   },
   textarea: {
@@ -1088,6 +1184,7 @@ const styles = {
     outline: "none",
     resize: "vertical",
     background: "#ffffff",
+    color: "#0f172a",
   },
   modalActions: {
     display: "flex",

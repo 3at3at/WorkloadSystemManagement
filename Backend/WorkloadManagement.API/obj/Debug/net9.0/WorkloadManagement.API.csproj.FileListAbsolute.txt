@@ -163,3 +163,4 @@ C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.API\ob
 C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.API\obj\Debug\net9.0\WorkloadManagement.API.pdb
 C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.API\obj\Debug\net9.0\WorkloadManagement.API.genruntimeconfig.cache
 C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.API\obj\Debug\net9.0\ref\WorkloadManagement.API.dll
+C:\Users\user\Desktop\WorkloadManagementSystem\backend\WorkloadManagement.API\obj\Debug\net9.0\WorkloadManagement.API.sourcelink.json

@@ -55,6 +55,54 @@ namespace WorkloadManagement.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("WorkloadManagement.Domain.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionUrl")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(600)
+                        .HasColumnType("nvarchar(600)");
+
+                    b.Property<int?>("RelatedEntityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("WorkloadManagement.Domain.Entities.TaskAcknowledgement", b =>
                 {
                     b.Property<int>("Id")
@@ -275,6 +323,17 @@ namespace WorkloadManagement.Infrastructure.Migrations
                     b.Navigation("TaskItem");
                 });
 
+            modelBuilder.Entity("WorkloadManagement.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("WorkloadManagement.Domain.Entities.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("WorkloadManagement.Domain.Entities.TaskApproval", b =>
                 {
                     b.HasOne("WorkloadManagement.Domain.Entities.User", "ApprovedByUser")
@@ -367,6 +426,8 @@ namespace WorkloadManagement.Infrastructure.Migrations
                     b.Navigation("AssignedTasks");
 
                     b.Navigation("CreatedTasks");
+
+                    b.Navigation("Notifications");
 
                     b.Navigation("RequestedApprovals");
 

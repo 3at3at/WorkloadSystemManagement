@@ -37,17 +37,16 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (loading) return;
+
     setError("");
 
     try {
-      const user = await login(formData);
-      redirectByRole(user.role);
+      const loggedInUser = await login(formData);
+      redirectByRole(loggedInUser.role);
     } catch (err) {
-      setError(
-        err?.response?.data?.message ||
-          err?.response?.data ||
-          "Login failed. Please check your credentials."
-      );
+      setError(err.message || "Login failed. Please try again.");
     }
   };
 
@@ -156,16 +155,16 @@ const LoginPage = () => {
           </div>
 
           {error && (
-  <motion.div
-    style={styles.errorBox}
-    initial={{ opacity: 0, y: -10, scale: 0.98 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.25 }}
-  >
-    <div style={styles.errorIcon}>!</div>
-    <span>{error}</span>
-  </motion.div>
-)}
+            <motion.div
+              style={styles.errorBox}
+              initial={{ opacity: 0, y: -10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.25 }}
+            >
+              <div style={styles.errorIcon}>!</div>
+              <span>{error}</span>
+            </motion.div>
+          )}
 
           <div style={styles.inputGroup}>
             <label style={styles.label}>Email Address</label>
@@ -179,6 +178,7 @@ const LoginPage = () => {
               placeholder="Enter your email"
               value={formData.email}
               onChange={handleChange}
+              autoComplete="email"
               required
             />
           </div>
@@ -197,6 +197,7 @@ const LoginPage = () => {
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleChange}
+                autoComplete="current-password"
                 required
               />
 
@@ -213,13 +214,20 @@ const LoginPage = () => {
 
           <motion.button
             type="submit"
-            style={styles.button}
-            whileHover={{
-              scale: 1.03,
-              y: -2,
-              boxShadow: "0 22px 38px rgba(59,130,246,0.34)",
+            style={{
+              ...styles.button,
+              ...(loading ? styles.buttonDisabled : {}),
             }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={
+              loading
+                ? {}
+                : {
+                    scale: 1.03,
+                    y: -2,
+                    boxShadow: "0 22px 38px rgba(59,130,246,0.34)",
+                  }
+            }
+            whileTap={loading ? {} : { scale: 0.98 }}
             disabled={loading}
           >
             {loading ? "Signing in..." : "Login"}
@@ -460,35 +468,40 @@ const styles = {
     fontSize: "15px",
     fontWeight: "800",
     boxShadow: "0 16px 32px rgba(59,130,246,0.28)",
+    cursor: "pointer",
+  },
+  buttonDisabled: {
+    opacity: 0.72,
+    cursor: "not-allowed",
+    boxShadow: "none",
   },
   errorBox: {
-  marginBottom: "16px",
-  padding: "12px 14px",
-  borderRadius: "16px",
-  background: "linear-gradient(135deg, #fff1f2, #ffe4e6)",
-  color: "#b91c1c",
-  fontSize: "14px",
-  fontWeight: "700",
-  border: "1px solid #fecdd3",
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
-  boxShadow: "0 10px 24px rgba(239,68,68,0.08)",
-},
-
-errorIcon: {
-  width: "24px",
-  height: "24px",
-  borderRadius: "50%",
-  background: "#ef4444",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "13px",
-  fontWeight: "800",
-  flexShrink: 0,
-},
+    marginBottom: "16px",
+    padding: "12px 14px",
+    borderRadius: "16px",
+    background: "linear-gradient(135deg, #fff1f2, #ffe4e6)",
+    color: "#b91c1c",
+    fontSize: "14px",
+    fontWeight: "700",
+    border: "1px solid #fecdd3",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    boxShadow: "0 10px 24px rgba(239,68,68,0.08)",
+  },
+  errorIcon: {
+    width: "24px",
+    height: "24px",
+    borderRadius: "50%",
+    background: "#ef4444",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "13px",
+    fontWeight: "800",
+    flexShrink: 0,
+  },
 };
 
 export default LoginPage;

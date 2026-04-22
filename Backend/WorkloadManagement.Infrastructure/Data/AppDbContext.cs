@@ -15,6 +15,7 @@ namespace WorkloadManagement.Infrastructure.Data
         public DbSet<TaskItem> Tasks => Set<TaskItem>();
         public DbSet<TaskAcknowledgement> TaskAcknowledgements => Set<TaskAcknowledgement>();
         public DbSet<TaskApproval> TaskApprovals => Set<TaskApproval>();
+        public DbSet<Notification> Notifications => Set<Notification>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -166,6 +167,37 @@ namespace WorkloadManagement.Infrastructure.Data
                     .HasForeignKey(x => x.ApprovedByUserId)
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired(false);
+            });
+
+            modelBuilder.Entity<Notification>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Type)
+                    .HasConversion<int>()
+                    .IsRequired();
+
+                entity.Property(x => x.Title)
+                    .IsRequired()
+                    .HasMaxLength(160);
+
+                entity.Property(x => x.Message)
+                    .IsRequired()
+                    .HasMaxLength(600);
+
+                entity.Property(x => x.ActionUrl)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsRead)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(x => x.User)
+                    .WithMany(u => u.Notifications)
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

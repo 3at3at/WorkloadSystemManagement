@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardShell from "../../components/layout/DashboardShell";
 import { useAuth } from "../../context/AuthContext";
@@ -7,32 +7,55 @@ import {
   getMyPendingApprovalsRequest,
   reviewApprovalRequest,
 } from "../../api/approvalsApi";
-import { getAllTasksRequest, getMyTasksRequest } from "../../api/tasksApi";
+import { getMyTasksRequest } from "../../api/tasksApi";
 import { getAllUsersRequest } from "../../api/usersApi";
+
+const initialFormData = {
+  taskId: "",
+  targetApproverUserId: "",
+  reason: "",
+};
 
 const SIDEBAR_OFFSET = 388;
 
 const ApprovalsPage = () => {
   const { user } = useAuth();
 
-  const [pendingApprovals, setPendingApprovals] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [approvers, setApprovers] = useState([]);
+  const [approvals, setApprovals] = useState([]);
+  const [myTasks, setMyTasks] = useState([]);
+  const [approverOptions, setApproverOptions] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState("");
   const [formError, setFormError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState(null);
 
-  const [formData, setFormData] = useState({
-    taskId: "",
-    targetApproverUserId: "",
-    requestReason: "",
+  const [toast, setToast] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  const [confirmState, setConfirmState] = useState({
+    open: false,
+    title: "",
+    message: "",
+    action: null,
+    danger: false,
   });
 
-  const canCreateRequest = user?.role === "Member" || user?.role === "TeamLeader";
-  const canReview = user?.role === "Admin" || user?.role === "TeamLeader";
+  const [searchTerm, setSearchTerm] = useState("");
+  const [formData, setFormData] = useState(initialFormData);
+
+  const isAdmin = user?.role === "Admin";
+  const isTeamLeader = user?.role === "TeamLeader";
+  const isMember = user?.role === "Member";
+  const canCreateApproval = isMember || isTeamLeader;
+  const isCompact = windowWidth < 860;
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const showToast = (message, type = "success") => {
     setToast({ id: Date.now(), message, type });
@@ -44,18 +67,40 @@ const ApprovalsPage = () => {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const fetchPendingApprovals = async () => {
-    if (!canReview) {
+  const filteredApprovals = useMemo(() => {
+    return approvals.filter((item) => {
+      return (
+        (item.taskTitle || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.requestedBy || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.targetApprover || item.targetApproverName || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        (item.requestReason || item.reason || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      );
+    });
+  }, [approvals, searchTerm]);
+
+  const resetModalState = () => {
+    setFormError("");
+    setFormData({
+      taskId: "",
+      targetApproverUserId: isMember ? user?.teamLeaderId ?? "" : "",
+      reason: "",
+    });
+  };
+
+  const fetchApprovals = async () => {
+    if (!isAdmin && !isTeamLeader) {
+      setApprovals([]);
       setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setPageError("");
-
     try {
       const data = await getMyPendingApprovalsRequest();
-      setPendingApprovals(data || []);
+      setApprovals(data || []);
     } catch (err) {
       setPageError(
         err?.response?.data?.message ||
@@ -67,79 +112,57 @@ const ApprovalsPage = () => {
     }
   };
 
-  const fetchTasks = async () => {
-    if (!canCreateRequest) return;
+  const fetchCreateModalData = async () => {
+    if (!canCreateApproval) return;
 
     try {
-      if (user?.role === "Member") {
-        const myTasks = await getMyTasksRequest();
-        setTasks((myTasks || []).filter((task) => task.status !== "Completed"));
-        return;
-      }
+      const [tasksData, usersData] = await Promise.all([
+        getMyTasksRequest(),
+        getAllUsersRequest(),
+      ]);
 
-      if (user?.role === "TeamLeader") {
-        const allTasks = await getAllTasksRequest();
+      const activeTasks = (tasksData || []).filter(
+        (task) => normalizeTaskStatus(task.status) !== "Completed"
+      );
+      setMyTasks(activeTasks);
 
-        const filteredTasks = (allTasks || []).filter(
-          (task) =>
-            task.assignedToUserId === user.id || task.createdByUserId === user.id
+      if (isMember) {
+        setApproverOptions(
+          user?.teamLeaderId
+            ? [
+                {
+                  id: user.teamLeaderId,
+                  fullName: user.teamLeaderName || "My Team Leader",
+                  role: "TeamLeader",
+                },
+              ]
+            : []
         );
-
-        setTasks(filteredTasks.filter((task) => task.status !== "Completed"));
-        return;
-      }
-
-      setTasks([]);
-    } catch (err) {
-      console.log("Failed to load tasks", err);
-      setTasks([]);
-    }
-  };
-
-  const fetchApprovers = async () => {
-    if (!canCreateRequest) return;
-
-    try {
-      if (user?.role === "Member") {
-        if (user?.teamLeaderId && user?.teamLeaderName) {
-          setApprovers([
-            {
-              id: user.teamLeaderId,
-              fullName: user.teamLeaderName,
-              role: "TeamLeader",
-              isActive: true,
-            },
-          ]);
-        } else {
-          setApprovers([]);
-        }
-        return;
-      }
-
-      if (user?.role === "TeamLeader") {
-        const data = await getAllUsersRequest();
-        const users = Array.isArray(data) ? data : [];
-
-        const admins = users.filter(
+      } else if (isTeamLeader) {
+        const admins = (usersData || []).filter(
           (item) => item.role === "Admin" && item.isActive
         );
-
-        setApprovers(admins);
-        return;
+        setApproverOptions(admins);
       }
-
-      setApprovers([]);
-    } catch (err) {
-      console.log("Failed to load approvers", err);
-      setApprovers([]);
+    } catch {
+      setMyTasks([]);
+      setApproverOptions([]);
     }
   };
 
   useEffect(() => {
-    fetchPendingApprovals();
-    fetchTasks();
-    fetchApprovers();
+    fetchApprovals();
+    fetchCreateModalData();
   }, []);
+
+  useEffect(() => {
+    if (isMember) {
+      setFormData((prev) => ({
+        ...prev,
+        targetApproverUserId: user?.teamLeaderId ?? "",
+      }));
+    }
+  }, [isMember, user?.teamLeaderId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -155,37 +178,23 @@ const ApprovalsPage = () => {
     }));
   };
 
-  const handleCreateRequest = async (e) => {
+  const handleSubmitApproval = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setFormError("");
 
-    if (!formData.taskId) {
-      setFormError("Please select a task.");
-      setSubmitting(false);
-      return;
-    }
-
-    if (!formData.targetApproverUserId) {
-      setFormError("Please select a target approver.");
-      setSubmitting(false);
-      return;
-    }
-
     try {
-      await createApprovalRequest({
+      const payload = {
         taskId: Number(formData.taskId),
         targetApproverUserId: Number(formData.targetApproverUserId),
-        requestReason: formData.requestReason,
-      });
+        requestReason: formData.reason.trim(),
+      };
 
+      await createApprovalRequest(payload);
       showToast("Approval request submitted successfully.");
       setShowModal(false);
-      setFormData({
-        taskId: "",
-        targetApproverUserId: "",
-        requestReason: "",
-      });
+      resetModalState();
+      fetchApprovals();
     } catch (err) {
       setFormError(
         err?.response?.data?.message ||
@@ -197,22 +206,70 @@ const ApprovalsPage = () => {
     }
   };
 
-  const handleReview = async (approvalId, approve) => {
+  const askReviewApproval = (approvalId, approve) => {
+    setConfirmState({
+      open: true,
+      title: approve ? "Approve Request" : "Reject Request",
+      message: approve
+        ? "Are you sure you want to approve this request?"
+        : "Are you sure you want to reject this request?",
+      danger: !approve,
+      action: async () => {
+        await reviewApprovalRequest(approvalId, { approve });
+        showToast(
+          approve
+            ? "Approval request approved successfully."
+            : "Approval request rejected successfully."
+        );
+        fetchApprovals();
+      },
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmState.action) return;
+
     try {
-      await reviewApprovalRequest(approvalId, { approve });
-      showToast(`Approval request ${approve ? "approved" : "rejected"} successfully.`);
-      fetchPendingApprovals();
+      await confirmState.action();
     } catch (err) {
-      setPageError(
+      showToast(
         err?.response?.data?.message ||
           err?.response?.data ||
-          "Failed to review approval request."
+          "Action failed.",
+        "error"
       );
+    } finally {
+      setConfirmState({
+        open: false,
+        title: "",
+        message: "",
+        action: null,
+        danger: false,
+      });
     }
+  };
+
+  const getApprovalsTitle = () => {
+    if (isAdmin) return "My Pending Approvals";
+    if (isTeamLeader) return "Pending Team Requests";
+    return "Request Approval";
+  };
+
+  const getApprovalsSubtitle = () => {
+    if (isAdmin) return "Requests currently assigned to you for review.";
+    if (isTeamLeader) return "Review requests submitted to you by your members.";
+    return "Create and submit approval requests for your assigned tasks.";
   };
 
   return (
     <DashboardShell user={user} title="Approvals Center">
+      <style>{`
+        input::placeholder,
+        textarea::placeholder {
+          color: rgba(255,255,255,0.55);
+        }
+      `}</style>
+
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -238,85 +295,112 @@ const ApprovalsPage = () => {
           </p>
         </div>
 
-        {canCreateRequest && (
+        {canCreateApproval && (
           <motion.button
             style={styles.primaryButton}
             whileHover={{ scale: 1.03, y: -1 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              resetModalState();
+              setShowModal(true);
+            }}
           >
             + Request Approval
           </motion.button>
         )}
       </div>
 
+      {(isAdmin || isTeamLeader) && (
+        <div style={styles.filtersCard}>
+          <input
+            style={{ ...styles.filterInput, flex: 1 }}
+            type="text"
+            placeholder="Search by task, requester, approver, or reason..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      )}
+
       {pageError && <div style={styles.errorBox}>{pageError}</div>}
 
-      {canReview && (
-        <div style={styles.card}>
-          <div style={styles.cardHeader}>
-            <h3 style={styles.cardTitle}>My Pending Approvals</h3>
-            <p style={styles.cardSubtitle}>
-              Requests currently assigned to you for review.
-            </p>
+      <div style={styles.card}>
+        <div style={styles.panelHeader}>
+          <div>
+            <h3 style={styles.panelTitle}>{getApprovalsTitle()}</h3>
+            <p style={styles.panelSubtitle}>{getApprovalsSubtitle()}</p>
           </div>
+        </div>
 
-          {loading ? (
+        {isAdmin || isTeamLeader ? (
+          loading ? (
             <div style={styles.loadingText}>Loading approvals...</div>
-          ) : pendingApprovals.length === 0 ? (
+          ) : filteredApprovals.length === 0 ? (
             <div style={styles.emptyText}>No pending approvals assigned to you.</div>
           ) : (
-            <div style={styles.grid}>
-              {pendingApprovals.map((approval) => (
+            <div
+              style={{
+                ...styles.grid,
+                ...(isCompact ? styles.gridCompact : {}),
+              }}
+            >
+              {filteredApprovals.map((approval) => (
                 <motion.div
                   key={approval.id}
                   style={styles.approvalCard}
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.22 }}
                   whileHover={{ y: -4 }}
                 >
-                  <div style={styles.cardTop}>
-                    <div>
-                      <h4 style={styles.approvalTitle}>{approval.taskTitle}</h4>
-                      <p style={styles.approvalMeta}>
-                        Requested by: {approval.requestedBy}
+                  <div style={styles.cardTopRow}>
+                    <h3 style={styles.approvalTitle}>{approval.taskTitle || "Task Request"}</h3>
+                    <span style={styles.pendingBadge}>Pending</span>
+                  </div>
+
+                  <div style={styles.infoBlock}>
+                    <p style={styles.infoText}>
+                      <strong>Requested By:</strong> {approval.requestedBy || "-"}
+                    </p>
+                    <p style={styles.infoText}>
+                      <strong>Approver:</strong> {approval.targetApprover || approval.targetApproverName || "-"}
+                    </p>
+                    <p style={styles.infoText}>
+                      <strong>Reason:</strong> {approval.requestReason || approval.reason || "-"}
+                    </p>
+                    {approval.requestedAt && (
+                      <p style={styles.infoText}>
+                        <strong>Requested At:</strong>{" "}
+                        {new Date(approval.requestedAt).toLocaleString()}
                       </p>
-                    </div>
-
-                    <span style={styles.pendingBadge}>{approval.approvalStatus}</span>
+                    )}
                   </div>
 
-                  <div style={styles.reasonBox}>
-                    <p style={styles.reasonLabel}>Reason</p>
-                    <p style={styles.reasonText}>{approval.requestReason}</p>
-                  </div>
-
-                  <div style={styles.actionRow}>
-                    <motion.button
-                      style={styles.approveButton}
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleReview(approval.id, true)}
+                  <div style={styles.actionsRow}>
+                    <button
+                      style={styles.successButton}
+                      onClick={() => askReviewApproval(approval.id, true)}
                     >
                       Approve
-                    </motion.button>
-
-                    <motion.button
-                      style={styles.rejectButton}
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleReview(approval.id, false)}
+                    </button>
+                    <button
+                      style={styles.dangerButton}
+                      onClick={() => askReviewApproval(approval.id, false)}
                     >
                       Reject
-                    </motion.button>
+                    </button>
                   </div>
                 </motion.div>
               ))}
             </div>
-          )}
-        </div>
-      )}
+          )
+        ) : (
+          <div style={styles.memberEmptyBox}>
+            <p style={styles.memberEmptyText}>
+              Use the button above to create a new approval request for one of your assigned tasks.
+            </p>
+          </div>
+        )}
+      </div>
 
       <AnimatePresence>
         {showModal && (
@@ -328,100 +412,161 @@ const ApprovalsPage = () => {
           >
             <motion.div
               style={styles.modal}
-              initial={{ opacity: 0, y: 40, scale: 0.94 }}
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.96 }}
-              transition={{ duration: 0.32, ease: "easeOut" }}
             >
               <div style={styles.modalHeader}>
-                <h3 style={styles.modalTitle}>Create Approval Request</h3>
-                <motion.button
-                  type="button"
+                <div>
+                  <h3 style={styles.modalTitle}>Create Approval Request</h3>
+                  <p style={styles.modalSubtitle}>
+                    Submit a request for task approval with a clear reason.
+                  </p>
+                </div>
+
+                <button
                   style={styles.closeButton}
-                  whileHover={{ scale: 1.08, rotate: 90 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    resetModalState();
+                  }}
                 >
                   ×
-                </motion.button>
+                </button>
               </div>
 
               {formError && <div style={styles.errorBox}>{formError}</div>}
 
-              <form onSubmit={handleCreateRequest} style={styles.form}>
+              <form onSubmit={handleSubmitApproval} style={styles.form}>
                 <div style={styles.inputGroup}>
                   <label style={styles.label}>Task</label>
-                  <motion.select
-                    whileHover={{ y: -1 }}
-                    whileFocus={{ scale: 1.01 }}
-                    transition={{ duration: 0.18 }}
+                  <select
                     style={styles.input}
                     name="taskId"
                     value={formData.taskId}
                     onChange={handleChange}
                     required
                   >
-                    <option value="">Select task</option>
-                    {tasks.map((task) => (
-                      <option key={task.id} value={task.id}>
+                    <option style={styles.selectOption} value="">
+                      Select task
+                    </option>
+                    {myTasks.map((task) => (
+                      <option style={styles.selectOption} key={task.id} value={task.id}>
                         {task.title}
                       </option>
                     ))}
-                  </motion.select>
+                  </select>
                 </div>
 
                 <div style={styles.inputGroup}>
                   <label style={styles.label}>Target Approver</label>
-                  <motion.select
-                    whileHover={{ y: -1 }}
-                    whileFocus={{ scale: 1.01 }}
-                    transition={{ duration: 0.18 }}
+                  <select
                     style={styles.input}
                     name="targetApproverUserId"
                     value={formData.targetApproverUserId}
                     onChange={handleChange}
                     required
+                    disabled={isMember && !!user?.teamLeaderId}
                   >
-                    <option value="">Select approver</option>
-                    {approvers.map((approver) => (
-                      <option key={approver.id} value={approver.id}>
-                        {approver.fullName} ({approver.role})
+                    <option style={styles.selectOption} value="">
+                      Select approver
+                    </option>
+                    {approverOptions.map((item) => (
+                      <option style={styles.selectOption} key={item.id} value={item.id}>
+                        {item.fullName} ({item.role})
                       </option>
                     ))}
-                  </motion.select>
+                  </select>
                 </div>
 
                 <div style={styles.inputGroup}>
-                  <label style={styles.label}>Request Reason</label>
-                  <motion.textarea
-                    whileHover={{ y: -1 }}
-                    whileFocus={{ scale: 1.01 }}
-                    transition={{ duration: 0.18 }}
+                  <label style={styles.label}>Reason</label>
+                  <textarea
                     style={styles.textarea}
-                    name="requestReason"
-                    value={formData.requestReason}
+                    name="reason"
+                    value={formData.reason}
                     onChange={handleChange}
                     placeholder="Explain why this approval is needed..."
                     required
                   />
                 </div>
 
-                <motion.button
-                  type="submit"
-                  style={styles.primaryButton}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  disabled={submitting}
-                >
-                  {submitting ? "Submitting..." : "Submit Request"}
-                </motion.button>
+                <div style={styles.modalActions}>
+                  <button
+                    type="button"
+                    style={styles.cancelButtonDark}
+                    onClick={() => {
+                      setShowModal(false);
+                      resetModalState();
+                    }}
+                  >
+                    Cancel
+                  </button>
+
+                  <button type="submit" style={styles.primaryButton} disabled={submitting}>
+                    {submitting ? "Submitting..." : "Submit Request"}
+                  </button>
+                </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {confirmState.open && (
+          <motion.div
+            style={styles.overlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              style={styles.confirmModal}
+              initial={{ opacity: 0, y: 30, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.96 }}
+            >
+              <h3 style={styles.confirmTitle}>{confirmState.title}</h3>
+              <p style={styles.confirmText}>{confirmState.message}</p>
+
+              <div style={styles.confirmActions}>
+                <button
+                  style={styles.cancelButton}
+                  onClick={() =>
+                    setConfirmState({
+                      open: false,
+                      title: "",
+                      message: "",
+                      action: null,
+                      danger: false,
+                    })
+                  }
+                >
+                  Cancel
+                </button>
+
+                <button
+                  style={confirmState.danger ? styles.dangerButton : styles.successButton}
+                  onClick={handleConfirmAction}
+                >
+                  Confirm
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
     </DashboardShell>
   );
+};
+
+const normalizeTaskStatus = (value) => {
+  if (value === 1 || value === "1" || value === "New") return "New";
+  if (value === 2 || value === "2" || value === "InProgress" || value === "In Progress") return "In Progress";
+  if (value === 3 || value === "3" || value === "Blocked") return "Blocked";
+  if (value === 4 || value === "4" || value === "Completed") return "Completed";
+  return String(value);
 };
 
 const styles = {
@@ -460,88 +605,110 @@ const styles = {
     color: "rgba(255,255,255,0.72)",
     fontSize: "15px",
   },
+  filtersCard: {
+    display: "grid",
+    gridTemplateColumns: "minmax(240px, 1fr)",
+    gap: "12px",
+  },
+  filterInput: {
+    padding: "14px 16px",
+    borderRadius: "16px",
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.08)",
+    color: "#ffffff",
+    fontSize: "14px",
+    outline: "none",
+    minHeight: "50px",
+  },
   card: {
     background: "rgba(255,255,255,0.08)",
     border: "1px solid rgba(255,255,255,0.08)",
     borderRadius: "26px",
-    padding: "22px",
+    padding: "20px",
     backdropFilter: "blur(14px)",
     boxShadow: "0 20px 40px rgba(0,0,0,0.18)",
   },
-  cardHeader: {
+  panelHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "16px",
+    alignItems: "flex-start",
     marginBottom: "18px",
   },
-  cardTitle: {
-    fontSize: "24px",
-    fontWeight: "800",
+  panelTitle: {
     color: "#fff",
-    marginBottom: "6px",
+    fontSize: "22px",
+    fontWeight: "800",
+    margin: 0,
   },
-  cardSubtitle: {
-    color: "rgba(255,255,255,0.72)",
+  panelSubtitle: {
+    color: "rgba(255,255,255,0.7)",
     fontSize: "14px",
+    marginTop: "6px",
   },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
     gap: "18px",
   },
+  gridCompact: {
+    gridTemplateColumns: "1fr",
+  },
   approvalCard: {
     padding: "22px",
     borderRadius: "22px",
     background: "rgba(255,255,255,0.06)",
     border: "1px solid rgba(255,255,255,0.07)",
+    minHeight: "220px",
   },
-  cardTop: {
+  cardTopRow: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: "12px",
-    marginBottom: "16px",
+    marginBottom: "14px",
+    flexWrap: "wrap",
   },
   approvalTitle: {
     color: "#fff",
     fontSize: "20px",
     fontWeight: "800",
+    margin: 0,
     lineHeight: 1.35,
-    marginBottom: "6px",
-  },
-  approvalMeta: {
-    color: "rgba(255,255,255,0.68)",
-    fontSize: "13px",
   },
   pendingBadge: {
     padding: "8px 12px",
     borderRadius: "999px",
+    fontSize: "12px",
+    fontWeight: "700",
     background: "rgba(250,204,21,0.18)",
     color: "#fde68a",
     border: "1px solid rgba(250,204,21,0.28)",
-    fontSize: "12px",
-    fontWeight: "800",
   },
-  reasonBox: {
-    padding: "14px",
-    borderRadius: "18px",
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.06)",
-    marginBottom: "16px",
+  infoBlock: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
   },
-  reasonLabel: {
-    color: "rgba(255,255,255,0.66)",
-    fontSize: "12px",
-    marginBottom: "8px",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-  },
-  reasonText: {
-    color: "#fff",
+  infoText: {
+    color: "rgba(255,255,255,0.8)",
     fontSize: "14px",
     lineHeight: 1.6,
   },
-  actionRow: {
+  actionsRow: {
     display: "flex",
-    gap: "12px",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginTop: "18px",
+    alignItems: "center",
+  },
+  memberEmptyBox: {
+    padding: "16px 4px 6px",
+  },
+  memberEmptyText: {
+    color: "rgba(255,255,255,0.74)",
+    fontSize: "15px",
+    lineHeight: 1.7,
   },
   primaryButton: {
     padding: "14px 18px",
@@ -552,32 +719,46 @@ const styles = {
     fontWeight: "800",
     boxShadow: "0 14px 28px rgba(79,70,229,0.25)",
   },
-  approveButton: {
-    flex: 1,
-    padding: "12px 14px",
+  successButton: {
+    padding: "11px 14px",
     borderRadius: "14px",
     border: "none",
     background: "linear-gradient(135deg, #10b981, #059669)",
     color: "#fff",
     fontWeight: "800",
   },
-  rejectButton: {
-    flex: 1,
-    padding: "12px 14px",
+  dangerButton: {
+    padding: "11px 14px",
     borderRadius: "14px",
     border: "none",
     background: "linear-gradient(135deg, #ef4444, #dc2626)",
     color: "#fff",
     fontWeight: "800",
   },
+  cancelButton: {
+    padding: "11px 14px",
+    borderRadius: "14px",
+    border: "1px solid #cbd5e1",
+    background: "#fff",
+    color: "#334155",
+    fontWeight: "700",
+  },
+  cancelButtonDark: {
+    padding: "14px 18px",
+    borderRadius: "16px",
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(15,23,42,0.72)",
+    color: "#fff",
+    fontWeight: "700",
+  },
   loadingText: {
     color: "#fff",
-    padding: "16px 6px",
+    padding: "18px 6px",
     fontWeight: "600",
   },
   emptyText: {
     color: "rgba(255,255,255,0.72)",
-    padding: "16px 6px",
+    padding: "18px 6px",
     fontWeight: "600",
   },
   overlay: {
@@ -586,53 +767,68 @@ const styles = {
     right: 0,
     bottom: 0,
     left: `${SIDEBAR_OFFSET}px`,
-    background: "rgba(2,6,23,0.58)",
-    backdropFilter: "blur(6px)",
+    background: "rgba(2,6,23,0.50)",
+    backdropFilter: "blur(8px)",
     display: "flex",
     alignItems: "flex-start",
     justifyContent: "center",
     zIndex: 1000,
-    padding: "72px 20px 28px",
+    padding: "36px 24px 24px",
     overflowY: "auto",
   },
   modal: {
     width: "100%",
     maxWidth: "720px",
-    background: "rgba(255,255,255,0.98)",
+    background: "linear-gradient(180deg, #ffffff, #f8fafc)",
     borderRadius: "30px",
     padding: "30px",
+    boxShadow: "0 35px 90px rgba(0,0,0,0.34)",
+    border: "1px solid rgba(226,232,240,0.95)",
+    marginBottom: "24px",
+  },
+  confirmModal: {
+    width: "100%",
+    maxWidth: "520px",
+    background: "rgba(255,255,255,0.98)",
+    borderRadius: "28px",
+    padding: "28px",
     boxShadow: "0 30px 80px rgba(0,0,0,0.30)",
     border: "1px solid rgba(226,232,240,0.9)",
+    marginTop: "70px",
   },
   modalHeader: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px",
+    alignItems: "flex-start",
+    gap: "16px",
+    marginBottom: "22px",
   },
   modalTitle: {
-    fontSize: "24px",
-    fontWeight: "800",
+    fontSize: "28px",
+    fontWeight: "900",
     color: "#0f172a",
-    letterSpacing: "-0.02em",
+    margin: 0,
+  },
+  modalSubtitle: {
+    color: "#64748b",
+    fontSize: "14px",
+    marginTop: "6px",
   },
   closeButton: {
     border: "none",
-    background: "#f8fafc",
-    width: "42px",
-    height: "42px",
+    background: "#eef2ff",
+    width: "44px",
+    height: "44px",
     borderRadius: "50%",
     fontSize: "24px",
     cursor: "pointer",
-    color: "#475569",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    color: "#4338ca",
+    flexShrink: 0,
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
+    gap: "18px",
   },
   inputGroup: {
     display: "flex",
@@ -641,7 +837,7 @@ const styles = {
   },
   label: {
     fontSize: "14px",
-    fontWeight: "700",
+    fontWeight: "800",
     color: "#334155",
   },
   input: {
@@ -651,11 +847,11 @@ const styles = {
     fontSize: "15px",
     outline: "none",
     background: "#ffffff",
-    transition: "all 0.22s ease",
-    boxShadow: "0 4px 14px rgba(15,23,42,0.04)",
+    color: "#0f172a",
+    minHeight: "54px",
   },
   textarea: {
-    minHeight: "120px",
+    minHeight: "130px",
     padding: "15px 16px",
     borderRadius: "16px",
     border: "1px solid #cbd5e1",
@@ -663,11 +859,37 @@ const styles = {
     outline: "none",
     resize: "vertical",
     background: "#ffffff",
-    transition: "all 0.22s ease",
-    boxShadow: "0 4px 14px rgba(15,23,42,0.04)",
+    color: "#0f172a",
+  },
+  selectOption: {
+    color: "#0f172a",
+    background: "#ffffff",
+  },
+  modalActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "12px",
+    marginTop: "6px",
+  },
+  confirmTitle: {
+    fontSize: "22px",
+    fontWeight: "800",
+    color: "#0f172a",
+    marginBottom: "12px",
+  },
+  confirmText: {
+    color: "#475569",
+    fontSize: "15px",
+    lineHeight: 1.7,
+    marginBottom: "20px",
+  },
+  confirmActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "12px",
   },
   errorBox: {
-    marginBottom: "8px",
+    marginBottom: "14px",
     padding: "12px 14px",
     borderRadius: "14px",
     background: "linear-gradient(135deg, #fff1f2, #ffe4e6)",

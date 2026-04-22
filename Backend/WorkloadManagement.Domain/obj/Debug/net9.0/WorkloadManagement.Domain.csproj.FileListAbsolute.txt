@@ -9,3 +9,4 @@ C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain
 C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\refint\WorkloadManagement.Domain.dll
 C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\WorkloadManagement.Domain.pdb
 C:\Users\user\Desktop\WorkloadManagementSystem\Backend\WorkloadManagement.Domain\obj\Debug\net9.0\ref\WorkloadManagement.Domain.dll
+C:\Users\user\Desktop\WorkloadManagementSystem\backend\WorkloadManagement.Domain\obj\Debug\net9.0\WorkloadManagement.Domain.sourcelink.json

@@ -52,23 +52,27 @@ const AdminDashboard = () => {
       <div style={styles.grid}>
         <StatCard
           title="Total Users"
-          value={loading ? "..." : stats.totalUsers}
+          value={stats.totalUsers}
           subtitle="All users except your own admin account"
+          loading={loading}
         />
         <StatCard
           title="Pending Approvals"
-          value={loading ? "..." : stats.pendingApprovals}
+          value={stats.pendingApprovals}
           subtitle="Requests assigned to you for review"
+          loading={loading}
         />
         <StatCard
           title="Total Tasks"
-          value={loading ? "..." : stats.totalTasks}
+          value={stats.totalTasks}
           subtitle="Tasks across the whole platform"
+          loading={loading}
         />
         <StatCard
           title="Overloaded Members"
-          value={loading ? "..." : stats.overloadedMembers}
+          value={stats.overloadedMembers}
           subtitle="Members needing workload balancing"
+          loading={loading}
         />
       </div>
 

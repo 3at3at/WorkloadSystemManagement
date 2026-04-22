@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardShell from "../../components/layout/DashboardShell";
 import { useAuth } from "../../context/AuthContext";
@@ -34,6 +34,7 @@ const UsersPage = () => {
   const [formError, setFormError] = useState("");
   const [editingUser, setEditingUser] = useState(null);
   const [toast, setToast] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [confirmState, setConfirmState] = useState({
     open: false,
     title: "",
@@ -42,9 +43,20 @@ const UsersPage = () => {
     danger: false,
   });
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+
   const [formData, setFormData] = useState(initialFormData);
 
   const isMemberRole = Number(formData.roleId) === 3;
+  const isCompact = windowWidth < 980;
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const showToast = (message, type = "success") => {
     setToast({ id: Date.now(), message, type });
@@ -62,7 +74,6 @@ const UsersPage = () => {
 
     try {
       const data = await getAllUsersRequest();
-
       const filteredUsers = (data || []).filter((item) => item.id !== user?.id);
       setUsers(filteredUsers);
 
@@ -84,6 +95,24 @@ const UsersPage = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((item) => {
+      const matchesSearch =
+        item.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.teamLeaderName?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesRole = roleFilter === "All" || item.role === roleFilter;
+
+      const matchesStatus =
+        statusFilter === "All" ||
+        (statusFilter === "Active" && item.isActive) ||
+        (statusFilter === "Inactive" && !item.isActive);
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, searchTerm, roleFilter, statusFilter]);
 
   const resetModalState = () => {
     setEditingUser(null);
@@ -237,6 +266,12 @@ const UsersPage = () => {
 
   return (
     <DashboardShell user={user} title="Users Management">
+      <style>{`
+        input::placeholder {
+          color: rgba(255,255,255,0.55);
+        }
+      `}</style>
+
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -272,12 +307,44 @@ const UsersPage = () => {
         </motion.button>
       </div>
 
+      <div style={styles.filtersCard}>
+        <input
+          style={{ ...styles.filterInput, flex: 1 }}
+          type="text"
+          placeholder="Search by name, email, or leader..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        <select
+          style={styles.filterInput}
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+        >
+          <option style={styles.selectOption} value="All">All Roles</option>
+          <option style={styles.selectOption} value="TeamLeader">Team Leaders</option>
+          <option style={styles.selectOption} value="Member">Members</option>
+        </select>
+
+        <select
+          style={styles.filterInput}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option style={styles.selectOption} value="All">All Statuses</option>
+          <option style={styles.selectOption} value="Active">Active</option>
+          <option style={styles.selectOption} value="Inactive">Inactive</option>
+        </select>
+      </div>
+
       {pageError && <div style={styles.errorBox}>{pageError}</div>}
 
       <div style={styles.tableCard}>
         {loading ? (
           <div style={styles.loadingText}>Loading users...</div>
-        ) : (
+        ) : filteredUsers.length === 0 ? (
+          <div style={styles.emptyText}>No users match your filters.</div>
+        ) : !isCompact ? (
           <div style={styles.tableWrapper}>
             <table style={styles.table}>
               <thead>
@@ -291,7 +358,7 @@ const UsersPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {users.map((item) => (
+                {filteredUsers.map((item) => (
                   <motion.tr
                     key={item.id}
                     initial={{ opacity: 0, y: 8 }}
@@ -311,27 +378,70 @@ const UsersPage = () => {
                       </span>
                     </td>
                     <td style={{ ...styles.td, minWidth: "280px" }}>
-  <div style={styles.actionRow}>
-    <button style={styles.editButton} onClick={() => openEditModal(item)}>
-      Edit
-    </button>
+                      <div style={styles.actionRow}>
+                        <button style={styles.editButton} onClick={() => openEditModal(item)}>
+                          Edit
+                        </button>
 
-    <button
-      style={item.isActive ? styles.deactivateButton : styles.activateButton}
-      onClick={() => handleToggleStatus(item.id, item.isActive)}
-    >
-      {item.isActive ? "Deactivate" : "Activate"}
-    </button>
+                        <button
+                          style={item.isActive ? styles.deactivateButton : styles.activateButton}
+                          onClick={() => handleToggleStatus(item.id, item.isActive)}
+                        >
+                          {item.isActive ? "Deactivate" : "Activate"}
+                        </button>
 
-    <button style={styles.deleteButton} onClick={() => askDeleteUser(item)}>
-      Delete
-    </button>
-  </div>
-</td>
+                        <button style={styles.deleteButton} onClick={() => askDeleteUser(item)}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </motion.tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        ) : (
+          <div style={styles.mobileGrid}>
+            {filteredUsers.map((item) => (
+              <motion.div
+                key={item.id}
+                style={styles.userCard}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div style={styles.userCardTop}>
+                  <div>
+                    <h3 style={styles.userCardName}>{item.fullName}</h3>
+                    <p style={styles.userCardEmail}>{item.email}</p>
+                  </div>
+                  <span style={item.isActive ? styles.activeBadge : styles.inactiveBadge}>
+                    {item.isActive ? "Active" : "Inactive"}
+                  </span>
+                </div>
+
+                <div style={styles.userMetaRow}>
+                  <span style={getRoleBadgeStyle(item.role)}>{item.role}</span>
+                  <span style={styles.leaderText}>
+                    Leader: {item.teamLeaderName || "-"}
+                  </span>
+                </div>
+
+                <div style={styles.mobileActionRow}>
+                  <button style={styles.editButton} onClick={() => openEditModal(item)}>
+                    Edit
+                  </button>
+                  <button
+                    style={item.isActive ? styles.deactivateButton : styles.activateButton}
+                    onClick={() => handleToggleStatus(item.id, item.isActive)}
+                  >
+                    {item.isActive ? "Deactivate" : "Activate"}
+                  </button>
+                  <button style={styles.deleteButton} onClick={() => askDeleteUser(item)}>
+                    Delete
+                  </button>
+                </div>
+              </motion.div>
+            ))}
           </div>
         )}
       </div>
@@ -428,8 +538,8 @@ const UsersPage = () => {
                       value={formData.roleId}
                       onChange={handleChange}
                     >
-                      <option value={2}>Team Leader</option>
-                      <option value={3}>Member</option>
+                      <option style={styles.selectOption} value={2}>Team Leader</option>
+                      <option style={styles.selectOption} value={3}>Member</option>
                     </select>
                   </div>
 
@@ -443,9 +553,9 @@ const UsersPage = () => {
                         onChange={handleChange}
                         required
                       >
-                        <option value="">Select team leader</option>
+                        <option style={styles.selectOption} value="">Select team leader</option>
                         {leaders.map((leader) => (
-                          <option key={leader.id} value={leader.id}>
+                          <option style={styles.selectOption} key={leader.id} value={leader.id}>
                             {leader.fullName}
                           </option>
                         ))}
@@ -606,6 +716,25 @@ const styles = {
     color: "rgba(255,255,255,0.72)",
     fontSize: "15px",
   },
+  filtersCard: {
+    display: "grid",
+    gridTemplateColumns: "minmax(220px, 1fr) 180px 180px",
+    gap: "12px",
+  },
+  filterInput: {
+    padding: "14px 16px",
+    borderRadius: "16px",
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.08)",
+    color: "#ffffff",
+    fontSize: "14px",
+    outline: "none",
+    minHeight: "50px",
+  },
+  selectOption: {
+    color: "#0f172a",
+    background: "#ffffff",
+  },
   tableCard: {
     background: "rgba(255,255,255,0.08)",
     border: "1px solid rgba(255,255,255,0.08)",
@@ -633,18 +762,65 @@ const styles = {
     borderBottom: "1px solid rgba(255,255,255,0.06)",
   },
   td: {
-  padding: "18px 16px",
-  color: "#fff",
-  fontSize: "14px",
-  verticalAlign: "middle",
-},
- actionRow: {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  flexWrap: "nowrap",
-  whiteSpace: "nowrap",
-},
+    padding: "18px 16px",
+    color: "#fff",
+    fontSize: "14px",
+    verticalAlign: "middle",
+  },
+  actionRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flexWrap: "nowrap",
+    whiteSpace: "nowrap",
+  },
+  mobileGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gap: "16px",
+  },
+  userCard: {
+    padding: "18px",
+    borderRadius: "22px",
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.06)",
+  },
+  userCardTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    alignItems: "flex-start",
+    marginBottom: "14px",
+  },
+  userCardName: {
+    margin: 0,
+    color: "#fff",
+    fontSize: "18px",
+    fontWeight: "800",
+  },
+  userCardEmail: {
+    marginTop: "6px",
+    color: "rgba(255,255,255,0.72)",
+    fontSize: "14px",
+    wordBreak: "break-word",
+  },
+  userMetaRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginBottom: "16px",
+  },
+  leaderText: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: "14px",
+  },
+  mobileActionRow: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  },
   primaryButton: {
     padding: "14px 18px",
     borderRadius: "16px",
@@ -655,41 +831,41 @@ const styles = {
     boxShadow: "0 14px 28px rgba(79,70,229,0.25)",
   },
   editButton: {
-  minWidth: "72px",
-  padding: "10px 14px",
-  borderRadius: "12px",
-  border: "none",
-  background: "linear-gradient(135deg, #0ea5e9, #2563eb)",
-  color: "#fff",
-  fontWeight: "700",
-},
-activateButton: {
-  minWidth: "108px",
-  padding: "10px 14px",
-  borderRadius: "12px",
-  border: "none",
-  background: "linear-gradient(135deg, #10b981, #059669)",
-  color: "#fff",
-  fontWeight: "700",
-},
-deactivateButton: {
-  minWidth: "108px",
-  padding: "10px 14px",
-  borderRadius: "12px",
-  border: "none",
-  background: "linear-gradient(135deg, #f59e0b, #d97706)",
-  color: "#fff",
-  fontWeight: "700",
-},
-deleteButton: {
-  minWidth: "82px",
-  padding: "10px 14px",
-  borderRadius: "12px",
-  border: "none",
-  background: "linear-gradient(135deg, #ef4444, #dc2626)",
-  color: "#fff",
-  fontWeight: "700",
-},
+    minWidth: "72px",
+    padding: "10px 14px",
+    borderRadius: "12px",
+    border: "none",
+    background: "linear-gradient(135deg, #0ea5e9, #2563eb)",
+    color: "#fff",
+    fontWeight: "700",
+  },
+  activateButton: {
+    minWidth: "108px",
+    padding: "10px 14px",
+    borderRadius: "12px",
+    border: "none",
+    background: "linear-gradient(135deg, #10b981, #059669)",
+    color: "#fff",
+    fontWeight: "700",
+  },
+  deactivateButton: {
+    minWidth: "108px",
+    padding: "10px 14px",
+    borderRadius: "12px",
+    border: "none",
+    background: "linear-gradient(135deg, #f59e0b, #d97706)",
+    color: "#fff",
+    fontWeight: "700",
+  },
+  deleteButton: {
+    minWidth: "82px",
+    padding: "10px 14px",
+    borderRadius: "12px",
+    border: "none",
+    background: "linear-gradient(135deg, #ef4444, #dc2626)",
+    color: "#fff",
+    fontWeight: "700",
+  },
   activeBadge: {
     padding: "8px 12px",
     borderRadius: "999px",
@@ -710,6 +886,11 @@ deleteButton: {
   },
   loadingText: {
     color: "#fff",
+    padding: "18px 6px",
+    fontWeight: "600",
+  },
+  emptyText: {
+    color: "rgba(255,255,255,0.72)",
     padding: "18px 6px",
     fontWeight: "600",
   },
@@ -796,6 +977,8 @@ deleteButton: {
     border: "1px solid #cbd5e1",
     fontSize: "15px",
     outline: "none",
+    color: "#0f172a",
+    background: "#ffffff",
   },
   loadingUserBox: {
     padding: "16px",

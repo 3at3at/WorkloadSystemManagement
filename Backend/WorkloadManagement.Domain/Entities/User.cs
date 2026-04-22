@@ -21,6 +21,7 @@ namespace WorkloadManagement.Domain.Entities
         public ICollection<TaskApproval> RequestedApprovals { get; set; } = new List<TaskApproval>();
         public ICollection<TaskApproval> ApprovedActions { get; set; } = new List<TaskApproval>();
         public ICollection<TaskApproval> ApprovalRequestsToReview { get; set; } = new List<TaskApproval>();
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
         public int? TeamLeaderId { get; set; }
         public User? TeamLeader { get; set; }
         public ICollection<User> TeamMembers { get; set; } = new List<User>();

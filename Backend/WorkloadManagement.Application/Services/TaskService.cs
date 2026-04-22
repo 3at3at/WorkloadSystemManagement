@@ -1,4 +1,5 @@
 using System.Globalization;
+using WorkloadManagement.Application.DTOs.Notifications;
 using WorkloadManagement.Application.DTOs.Tasks;
 using WorkloadManagement.Application.Interfaces;
 using WorkloadManagement.Domain.Entities;
@@ -12,11 +13,16 @@ namespace WorkloadManagement.Application.Services
     {
         private readonly ITaskRepository _taskRepository;
         private readonly IUserRepository _userRepository;
+        private readonly INotificationService _notificationService;
 
-        public TaskService(ITaskRepository taskRepository, IUserRepository userRepository)
+        public TaskService(
+            ITaskRepository taskRepository,
+            IUserRepository userRepository,
+            INotificationService notificationService)
         {
             _taskRepository = taskRepository;
             _userRepository = userRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<IEnumerable<TaskDto>> GetAllTasksAsync()
@@ -87,6 +93,19 @@ namespace WorkloadManagement.Application.Services
             task.AssignedToUser = assignedUser;
             task.CreatedByUser = createdByUser;
 
+            if (assignedUser.Id != createdByUserId)
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = assignedUser.Id,
+                    Type = NotificationType.TaskAssigned,
+                    Title = "New task assigned",
+                    Message = $"You were assigned \"{task.Title}\" by {createdByUser.FullName}.",
+                    RelatedEntityId = task.Id,
+                    ActionUrl = GetTasksPathForRole(assignedUser.Role?.Name)
+                });
+            }
+
             return MapToTaskDetailsDto(task);
         }
 
@@ -95,6 +114,11 @@ namespace WorkloadManagement.Application.Services
             var task = await _taskRepository.GetByIdAsync(id);
             if (task == null)
                 return null;
+
+            var previousAssignedToUserId = task.AssignedToUserId;
+            var previousAssignedUser = task.AssignedToUserId == dto.AssignedToUserId
+                ? task.AssignedToUser
+                : await _userRepository.GetByIdAsync(task.AssignedToUserId);
 
             var currentUser = await _userRepository.GetByIdAsync(currentUserId);
             if (currentUser == null)
@@ -126,11 +150,41 @@ namespace WorkloadManagement.Application.Services
             task.Year = dto.DueDate.Year;
             task.UpdatedAt = DateTime.UtcNow;
 
+            PrepareTaskForWrite(task);
             _taskRepository.Update(task);
             await _taskRepository.SaveChangesAsync();
 
             task.AssignedToUser = assignedUser;
             task.CreatedByUser = await _userRepository.GetByIdAsync(task.CreatedByUserId) ?? task.CreatedByUser;
+
+            if (previousAssignedToUserId != dto.AssignedToUserId)
+            {
+                if (previousAssignedUser != null && previousAssignedUser.Id != currentUserId)
+                {
+                    await _notificationService.CreateAsync(new CreateNotificationDto
+                    {
+                        UserId = previousAssignedUser.Id,
+                        Type = NotificationType.TaskAssigned,
+                        Title = "Task reassigned",
+                        Message = $"Task \"{task.Title}\" is no longer assigned to you.",
+                        RelatedEntityId = task.Id,
+                        ActionUrl = GetTasksPathForRole(previousAssignedUser.Role?.Name)
+                    });
+                }
+
+                if (assignedUser.Id != currentUserId)
+                {
+                    await _notificationService.CreateAsync(new CreateNotificationDto
+                    {
+                        UserId = assignedUser.Id,
+                        Type = NotificationType.TaskAssigned,
+                        Title = "Task reassigned",
+                        Message = $"Task \"{task.Title}\" was reassigned to you by {currentUser.FullName}.",
+                        RelatedEntityId = task.Id,
+                        ActionUrl = GetTasksPathForRole(assignedUser.Role?.Name)
+                    });
+                }
+            }
 
             return MapToTaskDetailsDto(task);
         }
@@ -150,11 +204,27 @@ namespace WorkloadManagement.Application.Services
             task.Status = dto.Status;
             task.UpdatedAt = DateTime.UtcNow;
 
+            PrepareTaskForWrite(task);
             _taskRepository.Update(task);
             await _taskRepository.SaveChangesAsync();
 
             task.AssignedToUser = await _userRepository.GetByIdAsync(task.AssignedToUserId) ?? task.AssignedToUser;
             task.CreatedByUser = await _userRepository.GetByIdAsync(task.CreatedByUserId) ?? task.CreatedByUser;
+
+            if (task.CreatedByUserId != currentUserId && task.CreatedByUser != null)
+            {
+                var assignee = task.AssignedToUser ?? await _userRepository.GetByIdAsync(currentUserId);
+
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = task.CreatedByUserId,
+                    Type = NotificationType.TaskStatusChanged,
+                    Title = "Task status updated",
+                    Message = $"{assignee?.FullName ?? "A user"} changed \"{task.Title}\" to {NormalizeStatus(task.Status)}.",
+                    RelatedEntityId = task.Id,
+                    ActionUrl = GetTasksPathForRole(task.CreatedByUser.Role?.Name)
+                });
+            }
 
             return MapToTaskDetailsDto(task);
         }
@@ -171,6 +241,7 @@ namespace WorkloadManagement.Application.Services
 
             await EnsureCanManageTaskAsync(task, currentUser);
 
+            PrepareTaskForWrite(task);
             _taskRepository.Delete(task);
             await _taskRepository.SaveChangesAsync();
 
@@ -189,11 +260,27 @@ namespace WorkloadManagement.Application.Services
             task.Status = TaskStatusEnum.Completed;
             task.UpdatedAt = DateTime.UtcNow;
 
+            PrepareTaskForWrite(task);
             _taskRepository.Update(task);
             await _taskRepository.SaveChangesAsync();
 
             task.AssignedToUser = await _userRepository.GetByIdAsync(task.AssignedToUserId) ?? task.AssignedToUser;
             task.CreatedByUser = await _userRepository.GetByIdAsync(task.CreatedByUserId) ?? task.CreatedByUser;
+
+            if (task.CreatedByUserId != memberId && task.CreatedByUser != null)
+            {
+                var completedByUser = task.AssignedToUser ?? await _userRepository.GetByIdAsync(memberId);
+
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = task.CreatedByUserId,
+                    Type = NotificationType.TaskCompleted,
+                    Title = "Task completed",
+                    Message = $"{completedByUser?.FullName ?? "A user"} marked \"{task.Title}\" as completed.",
+                    RelatedEntityId = task.Id,
+                    ActionUrl = GetTasksPathForRole(task.CreatedByUser.Role?.Name)
+                });
+            }
 
             return MapToTaskDetailsDto(task);
         }
@@ -305,6 +392,24 @@ namespace WorkloadManagement.Application.Services
                 Year = task.Year,
                 IsMajorChangePendingApproval = task.IsMajorChangePendingApproval
             };
+        }
+
+        private static string GetTasksPathForRole(RoleType? role)
+        {
+            return role switch
+            {
+                RoleType.Admin => "/admin/tasks",
+                RoleType.TeamLeader => "/leader/tasks",
+                _ => "/member/tasks"
+            };
+        }
+
+        private static void PrepareTaskForWrite(TaskItem task)
+        {
+            task.AssignedToUser = null!;
+            task.CreatedByUser = null!;
+            task.Acknowledgements = new List<TaskAcknowledgement>();
+            task.Approvals = new List<TaskApproval>();
         }
     }
 }

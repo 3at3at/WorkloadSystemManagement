@@ -12,6 +12,7 @@ import UsersPage from "../pages/users/UsersPage";
 import TasksPage from "../pages/tasks/TasksPage";
 import WorkloadPage from "../pages/workload/WorkloadPage";
 import ApprovalsPage from "../pages/approvals/ApprovalsPage";
+import NotificationsPage from "../pages/notifications/NotificationsPage";
 
 const pageVariants = {
   initial: { opacity: 0, y: 18, scale: 0.992, filter: "blur(6px)" },
@@ -78,16 +79,19 @@ const AppRoutes = () => {
           <Route path="/admin/tasks" element={<ProtectedRoute allowedRoles={["Admin"]}><AnimatedPage><TasksPage /></AnimatedPage></ProtectedRoute>} />
           <Route path="/admin/workload" element={<ProtectedRoute allowedRoles={["Admin"]}><AnimatedPage><WorkloadPage /></AnimatedPage></ProtectedRoute>} />
           <Route path="/admin/approvals" element={<ProtectedRoute allowedRoles={["Admin"]}><AnimatedPage><ApprovalsPage /></AnimatedPage></ProtectedRoute>} />
+          <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={["Admin"]}><AnimatedPage><NotificationsPage /></AnimatedPage></ProtectedRoute>} />
 
           <Route path="/leader/dashboard" element={<ProtectedRoute allowedRoles={["TeamLeader"]}><AnimatedPage><TeamLeaderDashboard /></AnimatedPage></ProtectedRoute>} />
           <Route path="/leader/tasks" element={<ProtectedRoute allowedRoles={["TeamLeader"]}><AnimatedPage><TasksPage /></AnimatedPage></ProtectedRoute>} />
           <Route path="/leader/workload" element={<ProtectedRoute allowedRoles={["TeamLeader"]}><AnimatedPage><WorkloadPage /></AnimatedPage></ProtectedRoute>} />
           <Route path="/leader/approvals" element={<ProtectedRoute allowedRoles={["TeamLeader"]}><AnimatedPage><ApprovalsPage /></AnimatedPage></ProtectedRoute>} />
+          <Route path="/leader/notifications" element={<ProtectedRoute allowedRoles={["TeamLeader"]}><AnimatedPage><NotificationsPage /></AnimatedPage></ProtectedRoute>} />
 
           <Route path="/member/dashboard" element={<ProtectedRoute allowedRoles={["Member"]}><AnimatedPage><MemberDashboard /></AnimatedPage></ProtectedRoute>} />
           <Route path="/member/tasks" element={<ProtectedRoute allowedRoles={["Member"]}><AnimatedPage><TasksPage /></AnimatedPage></ProtectedRoute>} />
           <Route path="/member/workload" element={<ProtectedRoute allowedRoles={["Member"]}><AnimatedPage><WorkloadPage /></AnimatedPage></ProtectedRoute>} />
           <Route path="/member/approvals" element={<ProtectedRoute allowedRoles={["Member"]}><AnimatedPage><ApprovalsPage /></AnimatedPage></ProtectedRoute>} />
+          <Route path="/member/notifications" element={<ProtectedRoute allowedRoles={["Member"]}><AnimatedPage><NotificationsPage /></AnimatedPage></ProtectedRoute>} />
 
           <Route path="*" element={<AnimatedPage><NotFoundPage /></AnimatedPage>} />
         </Routes>

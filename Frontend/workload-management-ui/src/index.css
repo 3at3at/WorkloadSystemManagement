@@ -17,6 +17,20 @@ select {
   font: inherit;
 }
 
+button,
+a[href],
+select,
+summary,
+[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 input::placeholder {
   color: #94a3b8;
 }

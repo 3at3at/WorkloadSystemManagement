@@ -1,4 +1,5 @@
 using WorkloadManagement.Application.DTOs.Approvals;
+using WorkloadManagement.Application.DTOs.Notifications;
 using WorkloadManagement.Application.Interfaces;
 using WorkloadManagement.Domain.Entities;
 using WorkloadManagement.Domain.Enums;
@@ -11,19 +12,26 @@ namespace WorkloadManagement.Application.Services
         private readonly ITaskApprovalRepository _taskApprovalRepository;
         private readonly ITaskRepository _taskRepository;
         private readonly IUserRepository _userRepository;
+        private readonly INotificationService _notificationService;
 
         public ApprovalService(
             ITaskApprovalRepository taskApprovalRepository,
             ITaskRepository taskRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            INotificationService notificationService)
         {
             _taskApprovalRepository = taskApprovalRepository;
             _taskRepository = taskRepository;
             _userRepository = userRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<TaskApprovalDto> CreateApprovalRequestAsync(CreateApprovalRequestDto dto, int requestedByUserId)
         {
+            var requestReason = (dto.RequestReason ?? dto.Reason ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(requestReason))
+                throw new Exception("Approval reason is required.");
+
             var task = await _taskRepository.GetByIdAsync(dto.TaskId);
             if (task == null)
                 throw new Exception("Task not found.");
@@ -44,7 +52,7 @@ namespace WorkloadManagement.Application.Services
                 RequestedByUserId = requestedByUserId,
                 TargetApproverUserId = dto.TargetApproverUserId,
                 ApprovalStatus = ApprovalStatus.Pending,
-                RequestReason = dto.RequestReason,
+                RequestReason = requestReason,
                 RequestedAt = DateTime.UtcNow
             };
 
@@ -58,6 +66,19 @@ namespace WorkloadManagement.Application.Services
             approval.TaskItem = task;
             approval.RequestedByUser = requestedByUser;
             approval.TargetApproverUser = targetApprover;
+
+            if (targetApprover.Id != requestedByUserId)
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = targetApprover.Id,
+                    Type = NotificationType.ApprovalSubmitted,
+                    Title = "New approval request",
+                    Message = $"{requestedByUser.FullName} requested approval for \"{task.Title}\".",
+                    RelatedEntityId = approval.Id,
+                    ActionUrl = GetApprovalsPathForRole(targetApprover.Role?.Name)
+                });
+            }
 
             return MapToDto(approval);
         }
@@ -110,6 +131,21 @@ namespace WorkloadManagement.Application.Services
             await _taskApprovalRepository.SaveChangesAsync();
 
             approval.ApprovedByUser = approvedByUser;
+            approval.RequestedByUser ??= await _userRepository.GetByIdAsync(approval.RequestedByUserId);
+            approval.TargetApproverUser ??= await _userRepository.GetByIdAsync(approval.TargetApproverUserId);
+
+            if (approval.RequestedByUserId != approvedByUserId && approval.RequestedByUser != null)
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = approval.RequestedByUserId,
+                    Type = NotificationType.ApprovalReviewed,
+                    Title = approve ? "Approval approved" : "Approval rejected",
+                    Message = $"Your approval request for \"{approval.TaskItem?.Title ?? "task"}\" was {(approve ? "approved" : "rejected")} by {approvedByUser.FullName}.",
+                    RelatedEntityId = approval.Id,
+                    ActionUrl = GetApprovalsPathForRole(approval.RequestedByUser.Role?.Name)
+                });
+            }
 
             return MapToDto(approval);
         }
@@ -167,6 +203,16 @@ namespace WorkloadManagement.Application.Services
                 RequestReason = approval.RequestReason,
                 RequestedAt = approval.RequestedAt,
                 ApprovedAt = approval.ApprovedAt
+            };
+        }
+
+        private static string GetApprovalsPathForRole(RoleType? role)
+        {
+            return role switch
+            {
+                RoleType.Admin => "/admin/approvals",
+                RoleType.TeamLeader => "/leader/approvals",
+                _ => "/member/approvals"
             };
         }
     }

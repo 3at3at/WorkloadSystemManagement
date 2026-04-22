@@ -1,6 +1,7 @@
 using WorkloadManagement.Application.DTOs.Dashboard;
 using WorkloadManagement.Application.Interfaces;
 using WorkloadManagement.Domain.Interfaces;
+using DomainTaskStatus = WorkloadManagement.Domain.Enums.TaskStatus;
 
 namespace WorkloadManagement.Application.Services
 {
@@ -27,6 +28,7 @@ namespace WorkloadManagement.Application.Services
         {
             var users = await _userRepository.GetAllAsync();
             var tasks = await _taskRepository.GetAllAsync();
+            var activeTasks = tasks.Where(IsActiveTask).ToList();
 
             // FIX: only approvals assigned to this admin
             var approvals = await _taskApprovalRepository.GetPendingApprovalsForApproverAsync(currentUserId);
@@ -39,7 +41,7 @@ namespace WorkloadManagement.Application.Services
             {
                 TotalUsers = filteredUsers.Count(),
                 PendingApprovals = approvals.Count(),
-                TotalTasks = tasks.Count(),
+                TotalTasks = activeTasks.Count,
                 OverloadedMembers = workload.OverloadedCount
             };
         }
@@ -57,9 +59,12 @@ namespace WorkloadManagement.Application.Services
                 .ToHashSet();
 
             var teamTasks = tasks.Where(t =>
-                t.AssignedToUserId == leaderId ||
-                t.CreatedByUserId == leaderId ||
-                (t.AssignedToUser != null && ownMembers.Contains(t.AssignedToUser.FullName))
+                IsActiveTask(t) &&
+                (
+                    t.AssignedToUserId == leaderId ||
+                    t.CreatedByUserId == leaderId ||
+                    (t.AssignedToUser != null && ownMembers.Contains(t.AssignedToUser.FullName))
+                )
             );
 
             return new LeaderDashboardSummaryDto
@@ -74,15 +79,21 @@ namespace WorkloadManagement.Application.Services
         public async Task<MemberDashboardSummaryDto> GetMemberSummaryAsync(int memberId, int weekNumber, int year)
         {
             var tasks = await _taskRepository.GetTasksByUserIdAsync(memberId);
+            var activeTasks = tasks.Where(IsActiveTask).ToList();
             var workload = await _workloadService.GetMemberWeeklyWorkloadAsync(memberId, weekNumber, year);
 
             return new MemberDashboardSummaryDto
             {
-                MyTasks = tasks.Count(),
-                NewTasks = tasks.Count(t => t.Status.ToString() == "New"),
+                MyTasks = activeTasks.Count,
+                NewTasks = activeTasks.Count(t => t.Status == DomainTaskStatus.New),
                 WeeklyWorkload = workload?.TotalWeight ?? 0,
                 WorkloadStatus = workload?.WorkloadStatus ?? "N/A"
             };
+        }
+
+        private static bool IsActiveTask(WorkloadManagement.Domain.Entities.TaskItem task)
+        {
+            return task.Status != DomainTaskStatus.Completed;
         }
     }
 }

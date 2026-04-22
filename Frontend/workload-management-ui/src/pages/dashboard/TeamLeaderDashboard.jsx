@@ -52,23 +52,27 @@ const TeamLeaderDashboard = () => {
       <div style={styles.grid}>
         <StatCard
           title="Assigned Tasks"
-          value={loading ? "..." : stats.assignedTasks}
+          value={stats.assignedTasks}
           subtitle="Tasks under your leadership scope"
+          loading={loading}
         />
         <StatCard
           title="Pending Approvals"
-          value={loading ? "..." : stats.pendingApprovals}
+          value={stats.pendingApprovals}
           subtitle="Requests sent to you by members"
+          loading={loading}
         />
         <StatCard
           title="Balanced Members"
-          value={loading ? "..." : stats.balancedMembers}
+          value={stats.balancedMembers}
           subtitle="Members with healthy workload"
+          loading={loading}
         />
         <StatCard
           title="Overloaded Members"
-          value={loading ? "..." : stats.overloadedMembers}
+          value={stats.overloadedMembers}
           subtitle="Members who may need support"
+          loading={loading}
         />
       </div>
 

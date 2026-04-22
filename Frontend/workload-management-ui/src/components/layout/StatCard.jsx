@@ -1,9 +1,26 @@
-const StatCard = ({ title, value, subtitle }) => {
+const StatCard = ({ title, value, subtitle, loading = false }) => {
   return (
     <div style={styles.card}>
+      <style>{`
+        @keyframes statCardShimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+
       <p style={styles.title}>{title}</p>
-      <h3 style={styles.value}>{value}</h3>
-      <p style={styles.subtitle}>{subtitle}</p>
+      {loading ? (
+        <div style={styles.loadingGroup}>
+          <div style={{ ...styles.skeleton, ...styles.valueSkeleton }} />
+          <div style={{ ...styles.skeleton, ...styles.subtitleSkeleton }} />
+          <div style={{ ...styles.skeleton, ...styles.subtitleSkeletonShort }} />
+        </div>
+      ) : (
+        <>
+          <h3 style={styles.value}>{value}</h3>
+          <p style={styles.subtitle}>{subtitle}</p>
+        </>
+      )}
     </div>
   );
 };
@@ -32,11 +49,38 @@ const styles = {
     marginBottom: "16px",
     letterSpacing: "-0.03em",
     textShadow: "0 6px 20px rgba(255,255,255,0.08)",
+    wordBreak: "break-word",
   },
   subtitle: {
     color: "rgba(255,255,255,0.78)",
     fontSize: "15px",
     lineHeight: 1.7,
+  },
+  loadingGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+  },
+  skeleton: {
+    borderRadius: "999px",
+    background:
+      "linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.08) 75%)",
+    backgroundSize: "200% 100%",
+    animation: "statCardShimmer 1.5s ease-in-out infinite",
+  },
+  valueSkeleton: {
+    width: "42%",
+    height: "46px",
+    borderRadius: "14px",
+    marginBottom: "2px",
+  },
+  subtitleSkeleton: {
+    width: "90%",
+    height: "14px",
+  },
+  subtitleSkeletonShort: {
+    width: "68%",
+    height: "14px",
   },
 };
 
