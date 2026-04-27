@@ -211,11 +211,15 @@ namespace WorkloadManagement.Application.Services
             task.AssignedToUser = await _userRepository.GetByIdAsync(task.AssignedToUserId) ?? task.AssignedToUser;
             task.CreatedByUser = await _userRepository.GetByIdAsync(task.CreatedByUserId) ?? task.CreatedByUser;
 
+            var assignee = task.AssignedToUser ?? await _userRepository.GetByIdAsync(currentUserId);
+            var currentUser = await _userRepository.GetByIdAsync(currentUserId);
+            
+            // Collect all notifications to batch them together
+            var notificationsToCreate = new List<CreateNotificationDto>();
+
             if (task.CreatedByUserId != currentUserId && task.CreatedByUser != null)
             {
-                var assignee = task.AssignedToUser ?? await _userRepository.GetByIdAsync(currentUserId);
-
-                await _notificationService.CreateAsync(new CreateNotificationDto
+                notificationsToCreate.Add(new CreateNotificationDto
                 {
                     UserId = task.CreatedByUserId,
                     Type = NotificationType.TaskStatusChanged,
@@ -224,6 +228,30 @@ namespace WorkloadManagement.Application.Services
                     RelatedEntityId = task.Id,
                     ActionUrl = GetTasksPathForRole(task.CreatedByUser.Role?.Name)
                 });
+            }
+
+            // Notify team leader if member changes status
+            if (currentUser?.Role?.Name == RoleType.Member && currentUser?.TeamLeaderId.HasValue == true)
+            {
+                var teamLeader = await _userRepository.GetByIdAsync(currentUser.TeamLeaderId.Value);
+                if (teamLeader != null && teamLeader.Id != task.CreatedByUserId)
+                {
+                    notificationsToCreate.Add(new CreateNotificationDto
+                    {
+                        UserId = teamLeader.Id,
+                        Type = NotificationType.TaskStatusChanged,
+                        Title = "Team member task status updated",
+                        Message = $"{currentUser.FullName} changed \"{task.Title}\" to {NormalizeStatus(task.Status)}.",
+                        RelatedEntityId = task.Id,
+                        ActionUrl = GetTasksPathForRole(teamLeader.Role?.Name)
+                    });
+                }
+            }
+
+            // Send all notifications in a batch
+            if (notificationsToCreate.Count > 0)
+            {
+                await _notificationService.CreateManyAsync(notificationsToCreate);
             }
 
             return MapToTaskDetailsDto(task);
@@ -267,11 +295,14 @@ namespace WorkloadManagement.Application.Services
             task.AssignedToUser = await _userRepository.GetByIdAsync(task.AssignedToUserId) ?? task.AssignedToUser;
             task.CreatedByUser = await _userRepository.GetByIdAsync(task.CreatedByUserId) ?? task.CreatedByUser;
 
+            var completedByUser = task.AssignedToUser ?? await _userRepository.GetByIdAsync(memberId);
+            
+            // Collect all notifications to batch them together
+            var notificationsToCreate = new List<CreateNotificationDto>();
+
             if (task.CreatedByUserId != memberId && task.CreatedByUser != null)
             {
-                var completedByUser = task.AssignedToUser ?? await _userRepository.GetByIdAsync(memberId);
-
-                await _notificationService.CreateAsync(new CreateNotificationDto
+                notificationsToCreate.Add(new CreateNotificationDto
                 {
                     UserId = task.CreatedByUserId,
                     Type = NotificationType.TaskCompleted,
@@ -280,6 +311,31 @@ namespace WorkloadManagement.Application.Services
                     RelatedEntityId = task.Id,
                     ActionUrl = GetTasksPathForRole(task.CreatedByUser.Role?.Name)
                 });
+            }
+
+            // Notify team leader when member completes task
+            var memberUser = completedByUser ?? await _userRepository.GetByIdAsync(memberId);
+            if (memberUser?.Role?.Name == RoleType.Member && memberUser?.TeamLeaderId.HasValue == true)
+            {
+                var teamLeader = await _userRepository.GetByIdAsync(memberUser.TeamLeaderId.Value);
+                if (teamLeader != null && teamLeader.Id != task.CreatedByUserId)
+                {
+                    notificationsToCreate.Add(new CreateNotificationDto
+                    {
+                        UserId = teamLeader.Id,
+                        Type = NotificationType.TaskCompleted,
+                        Title = "Team member task completed",
+                        Message = $"{memberUser.FullName} marked \"{task.Title}\" as completed.",
+                        RelatedEntityId = task.Id,
+                        ActionUrl = GetTasksPathForRole(teamLeader.Role?.Name)
+                    });
+                }
+            }
+
+            // Send all notifications in a batch
+            if (notificationsToCreate.Count > 0)
+            {
+                await _notificationService.CreateManyAsync(notificationsToCreate);
             }
 
             return MapToTaskDetailsDto(task);

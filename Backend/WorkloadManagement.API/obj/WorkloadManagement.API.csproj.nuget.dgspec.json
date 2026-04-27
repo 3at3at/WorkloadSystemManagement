@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.API\\WorkloadManagement.API.csproj": {}
+    "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.API\\WorkloadManagement.API.csproj": {}
   },
   "projects": {
-    "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.API\\WorkloadManagement.API.csproj": {
+    "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.API\\WorkloadManagement.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.API\\WorkloadManagement.API.csproj",
+        "projectUniqueName": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.API\\WorkloadManagement.API.csproj",
         "projectName": "WorkloadManagement.API",
-        "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.API\\WorkloadManagement.API.csproj",
+        "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.API\\WorkloadManagement.API.csproj",
         "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.API\\obj\\",
+        "outputPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,11 +32,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj": {
-                "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj"
+              "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj": {
+                "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj"
               },
-              "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Infrastructure\\WorkloadManagement.Infrastructure.csproj": {
-                "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Infrastructure\\WorkloadManagement.Infrastructure.csproj"
+              "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Infrastructure\\WorkloadManagement.Infrastructure.csproj": {
+                "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Infrastructure\\WorkloadManagement.Infrastructure.csproj"
               }
             }
           }
@@ -121,14 +121,14 @@
         }
       }
     },
-    "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj": {
+    "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj",
+        "projectUniqueName": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj",
         "projectName": "WorkloadManagement.Application",
-        "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj",
+        "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj",
         "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Application\\obj\\",
+        "outputPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Application\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -149,8 +149,8 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj": {
-                "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj"
+              "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj": {
+                "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj"
               }
             }
           }
@@ -204,14 +204,14 @@
         }
       }
     },
-    "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj": {
+    "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj",
+        "projectUniqueName": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj",
         "projectName": "WorkloadManagement.Domain",
-        "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj",
+        "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj",
         "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Domain\\obj\\",
+        "outputPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -283,14 +283,14 @@
         }
       }
     },
-    "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Infrastructure\\WorkloadManagement.Infrastructure.csproj": {
+    "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Infrastructure\\WorkloadManagement.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Infrastructure\\WorkloadManagement.Infrastructure.csproj",
+        "projectUniqueName": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Infrastructure\\WorkloadManagement.Infrastructure.csproj",
         "projectName": "WorkloadManagement.Infrastructure",
-        "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Infrastructure\\WorkloadManagement.Infrastructure.csproj",
+        "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Infrastructure\\WorkloadManagement.Infrastructure.csproj",
         "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Infrastructure\\obj\\",
+        "outputPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -311,11 +311,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj": {
-                "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj"
+              "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj": {
+                "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Application\\WorkloadManagement.Application.csproj"
               },
-              "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj": {
-                "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj"
+              "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj": {
+                "projectPath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj"
               }
             }
           }

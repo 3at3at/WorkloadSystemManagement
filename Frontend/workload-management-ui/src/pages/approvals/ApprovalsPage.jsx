@@ -82,6 +82,26 @@ const ApprovalsPage = () => {
     });
   }, [approvals, searchTerm]);
 
+  const filteredTaskOptions = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return myTasks;
+    }
+
+    return myTasks.filter((task) => {
+      const title = (task.title || "").toLowerCase();
+      const status = normalizeTaskStatus(task.status).toLowerCase();
+      const priority = String(task.priority || "").toLowerCase();
+
+      return (
+        title.includes(normalizedSearch) ||
+        status.includes(normalizedSearch) ||
+        priority.includes(normalizedSearch)
+      );
+    });
+  }, [myTasks, searchTerm]);
+
   const resetModalState = () => {
     setFormError("");
     setFormData({
@@ -116,10 +136,7 @@ const ApprovalsPage = () => {
     if (!canCreateApproval) return;
 
     try {
-      const [tasksData, usersData] = await Promise.all([
-        getMyTasksRequest(),
-        getAllUsersRequest(),
-      ]);
+      const tasksData = await getMyTasksRequest();
 
       const activeTasks = (tasksData || []).filter(
         (task) => normalizeTaskStatus(task.status) !== "Completed"
@@ -138,7 +155,11 @@ const ApprovalsPage = () => {
               ]
             : []
         );
-      } else if (isTeamLeader) {
+        return;
+      }
+
+      if (isTeamLeader) {
+        const usersData = await getAllUsersRequest();
         const admins = (usersData || []).filter(
           (item) => item.role === "Admin" && item.isActive
         );
@@ -310,12 +331,16 @@ const ApprovalsPage = () => {
         )}
       </div>
 
-      {(isAdmin || isTeamLeader) && (
+      {(isAdmin || isTeamLeader || canCreateApproval) && (
         <div style={styles.filtersCard}>
           <input
             style={{ ...styles.filterInput, flex: 1 }}
             type="text"
-            placeholder="Search by task, requester, approver, or reason..."
+            placeholder={
+              isAdmin || isTeamLeader
+                ? "Search by task, requester, approver, or reason..."
+                : "Search your tasks by title, status, or priority..."
+            }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -448,14 +473,21 @@ const ApprovalsPage = () => {
                     required
                   >
                     <option style={styles.selectOption} value="">
-                      Select task
+                      {filteredTaskOptions.length === 0
+                        ? "No matching tasks found"
+                        : "Select task"}
                     </option>
-                    {myTasks.map((task) => (
+                    {filteredTaskOptions.map((task) => (
                       <option style={styles.selectOption} key={task.id} value={task.id}>
                         {task.title}
                       </option>
                     ))}
                   </select>
+                  {myTasks.length === 0 && (
+                    <span style={styles.helperText}>
+                      No active assigned tasks are available for approval requests.
+                    </span>
+                  )}
                 </div>
 
                 <div style={styles.inputGroup}>
@@ -466,7 +498,6 @@ const ApprovalsPage = () => {
                     value={formData.targetApproverUserId}
                     onChange={handleChange}
                     required
-                    disabled={isMember && !!user?.teamLeaderId}
                   >
                     <option style={styles.selectOption} value="">
                       Select approver
@@ -477,6 +508,11 @@ const ApprovalsPage = () => {
                       </option>
                     ))}
                   </select>
+                  {isMember && (
+                    <span style={styles.helperText}>
+                      Members can send approval requests only to their assigned team leader.
+                    </span>
+                  )}
                 </div>
 
                 <div style={styles.inputGroup}>
@@ -839,6 +875,11 @@ const styles = {
     fontSize: "14px",
     fontWeight: "800",
     color: "#334155",
+  },
+  helperText: {
+    fontSize: "13px",
+    color: "#64748b",
+    lineHeight: 1.5,
   },
   input: {
     padding: "15px 16px",

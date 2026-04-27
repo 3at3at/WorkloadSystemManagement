@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "S3tyVzxNVro=",
+  "dgSpecHash": "K29zIh0SbNk=",
   "success": true,
-  "projectFilePath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj",
+  "projectFilePath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Domain\\WorkloadManagement.Domain.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\user\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.14\\microsoft.netcore.app.ref.9.0.14.nupkg.sha512",
     "C:\\Users\\user\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.14\\microsoft.windowsdesktop.app.ref.9.0.14.nupkg.sha512",

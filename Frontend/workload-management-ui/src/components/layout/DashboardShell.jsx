@@ -128,7 +128,7 @@ const DashboardShell = ({ user, title, children }) => {
         <div style={styles.avatar}>{getInitial(user?.fullName)}</div>
         <div style={{ minWidth: 0 }}>
           <h3 style={styles.profileName}>{user?.fullName || "User"}</h3>
-          <p style={styles.profileRole}>{user?.role || "Role"}</p>
+          <p style={styles.profileRole}>{user?.role === "TeamLeader" ? "Team Leader" : (user?.role || "Role")}</p>
         </div>
       </div>
 

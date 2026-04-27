@@ -17,6 +17,8 @@ export const AuthProvider = ({ children }) => {
   const [token, setTokenState] = useState(getToken());
   const [user, setUserState] = useState(getUser());
   const [loading, setLoading] = useState(false);
+  const currentToken = token ?? getToken();
+  const currentUser = user ?? getUser();
 
   const normalizeUserData = (data) => ({
     id: data.id,
@@ -79,10 +81,10 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider
       value={{
-        token,
-        user,
+        token: currentToken,
+        user: currentUser,
         loading,
-        isAuthenticated: !!token,
+        isAuthenticated: !!currentToken,
         login,
         logout,
       }}

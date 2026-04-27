@@ -1,61 +1,58 @@
 # Workload Management System
 
-This project is a full-stack workload and task management system for software teams.
-
-It supports:
-- role-based login for `Admin`, `TeamLeader`, and `Member`
-- task creation, assignment, update, status tracking, and completion
-- approval requests for major task changes
-- dashboard summaries for each role
-- workload monitoring
-- in-app notifications for task and approval events
+A full-stack workload and task management platform for software teams, with role-based access, approval workflows, workload analytics, and real-time in-app notifications.
 
 The repository is split into:
-- `Backend/` for the ASP.NET Core API
-- `Frontend/workload-management-ui/` for the React + Vite UI
+- `Backend/` — ASP.NET Core Web API (.NET 9)
+- `Frontend/workload-management-ui/` — React 19 + Vite frontend
+- `Backend/WorkloadManagement.Tests/` — xUnit test suite (81 tests, all passing)
 
-## Main Features
+## Features
 
 ### Admin
-- manage users
+- manage all users (create, activate/deactivate, delete)
 - manage tasks across the platform
-- review approvals sent to admin
+- review and action approval requests
 - monitor workload and dashboard statistics
-- receive notifications
+- receive in-app notifications
 
 ### Team Leader
-- manage tasks for their team
+- manage tasks for their own team members
 - monitor team workload
-- review member approvals
+- review member approval requests
 - receive task and approval notifications
 
 ### Member
-- view assigned tasks
-- update task status
-- mark tasks as done
-- request approvals
-- view workload and notifications
+- view and filter assigned tasks
+- update personal task status
+- mark tasks as complete
+- submit approval requests
+- view personal workload and notifications
 
 ## Tech Stack
 
 ### Backend
-- ASP.NET Core Web API
-- Entity Framework Core
+- ASP.NET Core Web API (.NET 9)
+- Entity Framework Core (NoTracking mode)
 - SQL Server
-- JWT authentication
+- JWT authentication (Bearer tokens)
+- BCrypt password hashing
 
 ### Frontend
-- React
-- Vite
-- React Router
+- React 19
+- Vite 5
+- React Router v7
 - Framer Motion
 - Axios
+
+### Tests
+- xUnit 2.9.3
+- Moq 4.20.70
+- FluentAssertions 6.12.0
 
 ---
 
 ## Project Structure
-
-## Root
 
 ### `Backend/`
 Contains the .NET solution and all backend projects.
@@ -570,37 +567,41 @@ Notifications appear:
 
 ---
 
-## Database Notes
+## How To Run
 
-The backend uses EF Core migrations.
+### Prerequisites
+- .NET 9 SDK
+- Node.js 18+
+- SQL Server (local or remote)
 
-Migrations are stored in:
-- `Backend/WorkloadManagement.Infrastructure/Migrations`
+### 1. Configure the database connection
 
-To update database:
+Edit `Backend/WorkloadManagement.API/appsettings.json`:
+
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Server=YOUR_SERVER;Database=WorkloadManagement;Trusted_Connection=True;TrustServerCertificate=True"
+}
+```
+
+### 2. Apply database migrations
 
 ```powershell
 cd Backend\WorkloadManagement.API
 dotnet ef database update --project ..\WorkloadManagement.Infrastructure --startup-project .
 ```
 
----
-
-## How To Run
-
-## Backend
+### 3. Run the backend
 
 ```powershell
 cd Backend\WorkloadManagement.API
-dotnet build
 dotnet run
 ```
 
-API usually runs on:
-- `http://localhost:5127`
-- Swagger available in development
+API runs on `http://localhost:5127`.  
+Swagger UI is available in development at `http://localhost:5127/swagger`.
 
-## Frontend
+### 4. Run the frontend
 
 ```powershell
 cd Frontend\workload-management-ui
@@ -608,27 +609,51 @@ npm install
 npm run dev
 ```
 
-Frontend usually runs on:
-- `http://localhost:5173`
+Frontend runs on `http://localhost:5173`.
+
+---
+
+## Running Tests
+
+The test project is at `Backend/WorkloadManagement.Tests/` and covers all application services.
+
+**Run all tests from the solution root:**
+
+```powershell
+dotnet test Backend/WorkloadManagement.sln
+```
+
+**Or from the test project directory:**
+
+```powershell
+cd Backend\WorkloadManagement.Tests
+dotnet test
+```
+
+**Current status: 81/81 tests passing.**
+
+| Test class | Tests | Coverage |
+|---|---|---|
+| `AuthServiceTests` | 8 | Register (new, duplicate email, invalid role), Login (valid, wrong password, unknown email, inactive user) |
+| `UserServiceTests` | 11 | GetAll, GetById, Create (valid, duplicate, missing leader, invalid leader), Delete (own account throws, not found), UpdateStatus |
+| `TaskServiceTests` | 13 | GetAll/Mine/ById, Create (admin, user not found, leader→non-member), Delete, UpdateStatus/Complete (own/not own), weight calculation `[Theory]` |
+| `ApprovalServiceTests` | 12 | Create (happy path, empty reason, not found, member→admin, wrong leader, no leader, admin self-request), Review (approve, reject, not found, already reviewed, wrong approver), GetPending, UTC datetime kind |
+| `NotificationServiceTests` | 11 | Create (valid, invalid userId), CreateMany (valid, empty, all invalid), GetMine, UnreadCount, MarkAsRead (unread, already read, not found), MarkAllAsRead |
+| `WorkloadServiceTests` | 11 | Acknowledge (first, duplicate, not found, not own), GetMemberWorkload (user not found, with tasks, no tasks in week), GetTeamWorkload (admin, leader, member throws), status thresholds `[Theory]` |
+| `DashboardServiceTests` | 6 | AdminSummary (totals, excludes self), LeaderSummary, MemberSummary (correct counts, null workload defaults) |
 
 ---
 
 ## Notes About Generated / Optional Files
 
-Some files/folders are framework-generated or currently not central to the app:
-- `bin/`
-- `obj/`
-- `.gitkeep`
-- placeholder files like `Class1.cs`
-- optional layout folders/components not used heavily yet
-
-These are not the core business files.
+Some files/folders are framework-generated and not central to the business logic:
+- `bin/`, `obj/` — build output directories
+- `Class1.cs` — default placeholder files (not used)
+- `.gitkeep` — empty directory markers
 
 ---
 
 ## Suggested Reading Order For New Developers
-
-If you want to understand the project quickly, read in this order:
 
 1. `Backend/WorkloadManagement.API/Program.cs`
 2. `Backend/WorkloadManagement.Domain/Entities/`
@@ -641,46 +666,40 @@ If you want to understand the project quickly, read in this order:
 
 ---
 
-## Current Core Files To Know First
-
-If you only want the most important files, start with:
+## Key Files Reference
 
 ### Backend
-- `Program.cs`
-- `AppDbContext.cs`
-- `TaskService.cs`
-- `ApprovalService.cs`
-- `DashboardService.cs`
-- `NotificationService.cs`
-- `TasksController.cs`
-- `ApprovalsController.cs`
+| File | Purpose |
+|---|---|
+| `Program.cs` | App configuration, DI registration, middleware |
+| `AppDbContext.cs` | EF Core context, entity mappings, role seed |
+| `TaskService.cs` | Core task business logic and permissions |
+| `ApprovalService.cs` | Approval creation, hierarchy rules, review |
+| `WorkloadService.cs` | ISO-week workload calculation |
+| `DashboardService.cs` | Role-scoped summary statistics |
+| `NotificationService.cs` | In-app notification creation and delivery |
 
 ### Frontend
-- `main.jsx`
-- `AuthContext.jsx`
-- `AppRoutes.jsx`
-- `DashboardShell.jsx`
-- `TasksPage.jsx`
-- `ApprovalsPage.jsx`
-- `NotificationsPage.jsx`
-- `UsersPage.jsx`
+| File | Purpose |
+|---|---|
+| `main.jsx` | Entry point, providers |
+| `AuthContext.jsx` | JWT token and user state |
+| `AppRoutes.jsx` | Route definitions and role guards |
+| `DashboardShell.jsx` | Sidebar, topbar, notification bell |
+| `TasksPage.jsx` | Task management UI |
+| `ApprovalsPage.jsx` | Approval workflow UI |
+| `NotificationsPage.jsx` | Full notifications view |
+| `UsersPage.jsx` | Admin user management |
 
 ---
 
 ## Summary
 
-This project is a role-based workload management platform that connects:
-- user management
-- task management
-- approval workflow
-- workload analysis
-- notifications
+Workload Pro is a role-based workload management platform connecting:
+- **User management** — role assignment, team leader hierarchy
+- **Task management** — creation, assignment, status tracking, completion
+- **Approval workflow** — request creation, hierarchy enforcement, review
+- **Workload analysis** — ISO-week weight calculation, status thresholds
+- **Notifications** — event-driven in-app alerts for all major actions
 
-The backend is structured in clean layers, and the frontend is organized by pages, APIs, shared layout, and auth state.
-
-If needed later, this README can be expanded with:
-- API endpoint documentation
-- database ERD
-- screenshots
-- deployment steps
-- testing instructions
+The backend uses a clean layered architecture (API → Application → Domain ← Infrastructure). The frontend is organized by feature pages with shared auth state and layout components. The full service layer is covered by an automated xUnit test suite.

@@ -59,17 +59,22 @@ namespace WorkloadManagement.Application.Services
             await _taskApprovalRepository.AddAsync(approval);
 
             task.IsMajorChangePendingApproval = true;
+            // Null out navigation properties before Update to prevent EF Core tracking
+            // conflicts caused by the global NoTracking context attaching duplicate instances.
+            task.AssignedToUser = null!;
+            task.CreatedByUser = null!;
+            task.Acknowledgements = null!;
+            task.Approvals = null!;
             _taskRepository.Update(task);
 
             await _taskApprovalRepository.SaveChangesAsync();
 
-            approval.TaskItem = task;
-            approval.RequestedByUser = requestedByUser;
-            approval.TargetApproverUser = targetApprover;
+            // Collect all notifications to batch them together
+            var notificationsToCreate = new List<CreateNotificationDto>();
 
             if (targetApprover.Id != requestedByUserId)
             {
-                await _notificationService.CreateAsync(new CreateNotificationDto
+                notificationsToCreate.Add(new CreateNotificationDto
                 {
                     UserId = targetApprover.Id,
                     Type = NotificationType.ApprovalSubmitted,
@@ -80,7 +85,48 @@ namespace WorkloadManagement.Application.Services
                 });
             }
 
-            return MapToDto(approval);
+            // Notify team leader if requester is a member
+            if (requestedByUser?.Role?.Name == RoleType.Member && requestedByUser?.TeamLeaderId.HasValue == true)
+            {
+                var teamLeader = await _userRepository.GetByIdAsync(requestedByUser.TeamLeaderId.Value);
+                if (teamLeader != null && teamLeader.Id != targetApprover.Id)
+                {
+                    notificationsToCreate.Add(new CreateNotificationDto
+                    {
+                        UserId = teamLeader.Id,
+                        Type = NotificationType.ApprovalSubmitted,
+                        Title = "Team member approval request",
+                        Message = $"{requestedByUser.FullName} requested approval for \"{task.Title}\".",
+                        RelatedEntityId = approval.Id,
+                        ActionUrl = GetApprovalsPathForRole(teamLeader.Role?.Name)
+                    });
+                }
+            }
+
+            // Send all notifications in a batch
+            if (notificationsToCreate.Count > 0)
+            {
+                await _notificationService.CreateManyAsync(notificationsToCreate);
+            }
+
+            // Build DTO from local variables (navigation props on approval are not set
+            // to avoid re-introducing tracking conflicts on the second SaveChanges).
+            return new TaskApprovalDto
+            {
+                Id = approval.Id,
+                TaskId = approval.TaskItemId,
+                TaskTitle = task.Title,
+                RequestedByUserId = approval.RequestedByUserId,
+                RequestedBy = requestedByUser.FullName,
+                TargetApproverUserId = approval.TargetApproverUserId,
+                TargetApprover = targetApprover.FullName,
+                ApprovedByUserId = approval.ApprovedByUserId,
+                ApprovedBy = string.Empty,
+                ApprovalStatus = approval.ApprovalStatus.ToString(),
+                RequestReason = approval.RequestReason,
+                RequestedAt = DateTime.SpecifyKind(approval.RequestedAt, DateTimeKind.Utc),
+                ApprovedAt = null
+            };
         }
 
         public async Task<IEnumerable<TaskApprovalDto>> GetPendingApprovalsAsync()
@@ -117,6 +163,17 @@ namespace WorkloadManagement.Application.Services
             if (approvedByUser == null)
                 throw new Exception("Approving user not found.");
 
+            // Load task and requester if not already loaded
+            if (approval.TaskItem == null)
+                approval.TaskItem = await _taskRepository.GetByIdAsync(approval.TaskItemId);
+            if (approval.RequestedByUser == null)
+                approval.RequestedByUser = await _userRepository.GetByIdAsync(approval.RequestedByUserId);
+
+            // Capture navigation data before clearing references to avoid EF tracking conflicts.
+            var taskTitle = approval.TaskItem?.Title ?? string.Empty;
+            var requestedByUserRef = approval.RequestedByUser;
+            var targetApproverRef = approval.TargetApproverUser;
+
             approval.ApprovalStatus = approve ? ApprovalStatus.Approved : ApprovalStatus.Rejected;
             approval.ApprovedByUserId = approvedByUserId;
             approval.ApprovedAt = DateTime.UtcNow;
@@ -124,30 +181,81 @@ namespace WorkloadManagement.Application.Services
             if (approval.TaskItem != null)
             {
                 approval.TaskItem.IsMajorChangePendingApproval = false;
+                // Null out navigation properties before Update to prevent tracking conflicts.
+                approval.TaskItem.AssignedToUser = null!;
+                approval.TaskItem.CreatedByUser = null!;
+                approval.TaskItem.Acknowledgements = null!;
+                approval.TaskItem.Approvals = null!;
                 _taskRepository.Update(approval.TaskItem);
             }
 
+            // Null out approval navigation properties before Update to prevent tracking
+            // conflicts between entities loaded via different queries (NoTracking context).
+            approval.TaskItem = null!;
+            approval.RequestedByUser = null!;
+            approval.TargetApproverUser = null!;
+            approval.ApprovedByUser = null!;
             _taskApprovalRepository.Update(approval);
             await _taskApprovalRepository.SaveChangesAsync();
 
-            approval.ApprovedByUser = approvedByUser;
-            approval.RequestedByUser ??= await _userRepository.GetByIdAsync(approval.RequestedByUserId);
-            approval.TargetApproverUser ??= await _userRepository.GetByIdAsync(approval.TargetApproverUserId);
+            // Collect all notifications to batch them together
+            var notificationsToCreate = new List<CreateNotificationDto>();
 
-            if (approval.RequestedByUserId != approvedByUserId && approval.RequestedByUser != null)
+            if (approval.RequestedByUserId != approvedByUserId && requestedByUserRef != null)
             {
-                await _notificationService.CreateAsync(new CreateNotificationDto
+                notificationsToCreate.Add(new CreateNotificationDto
                 {
                     UserId = approval.RequestedByUserId,
                     Type = NotificationType.ApprovalReviewed,
                     Title = approve ? "Approval approved" : "Approval rejected",
-                    Message = $"Your approval request for \"{approval.TaskItem?.Title ?? "task"}\" was {(approve ? "approved" : "rejected")} by {approvedByUser.FullName}.",
+                    Message = $"Your approval request for \"{taskTitle}\" was {(approve ? "approved" : "rejected")} by {approvedByUser.FullName}.",
                     RelatedEntityId = approval.Id,
-                    ActionUrl = GetApprovalsPathForRole(approval.RequestedByUser.Role?.Name)
+                    ActionUrl = GetApprovalsPathForRole(requestedByUserRef.Role?.Name)
                 });
+
+                // Notify team leader if requester is a member
+                if (requestedByUserRef.Role?.Name == RoleType.Member && requestedByUserRef.TeamLeaderId.HasValue)
+                {
+                    var teamLeader = await _userRepository.GetByIdAsync(requestedByUserRef.TeamLeaderId.Value);
+                    if (teamLeader != null && teamLeader.Id != approvedByUserId)
+                    {
+                        notificationsToCreate.Add(new CreateNotificationDto
+                        {
+                            UserId = teamLeader.Id,
+                            Type = NotificationType.ApprovalReviewed,
+                            Title = approve ? "Team member approval approved" : "Team member approval rejected",
+                            Message = $"{requestedByUserRef.FullName}'s approval request for \"{taskTitle}\" was {(approve ? "approved" : "rejected")} by {approvedByUser.FullName}.",
+                            RelatedEntityId = approval.Id,
+                            ActionUrl = GetApprovalsPathForRole(teamLeader.Role?.Name)
+                        });
+                    }
+                }
             }
 
-            return MapToDto(approval);
+            // Send all notifications in a batch
+            if (notificationsToCreate.Count > 0)
+            {
+                await _notificationService.CreateManyAsync(notificationsToCreate);
+            }
+
+            return new TaskApprovalDto
+            {
+                Id = approval.Id,
+                TaskId = approval.TaskItemId,
+                TaskTitle = taskTitle,
+                RequestedByUserId = approval.RequestedByUserId,
+                RequestedBy = requestedByUserRef?.FullName ?? string.Empty,
+                TargetApproverUserId = approval.TargetApproverUserId,
+                TargetApprover = targetApproverRef?.FullName ?? string.Empty,
+                ApprovedByUserId = approval.ApprovedByUserId,
+                ApprovedBy = approvedByUser.FullName,
+                ApprovalStatus = approval.ApprovalStatus.ToString(),
+                RequestReason = approval.RequestReason,
+                RequestedAt = DateTime.SpecifyKind(approval.RequestedAt, DateTimeKind.Utc),
+                ApprovedAt = approval.ApprovedAt.HasValue
+                    ? DateTime.SpecifyKind(approval.ApprovedAt.Value, DateTimeKind.Utc)
+                    : null
+            };
         }
 
         private static void ValidateApprovalHierarchy(User requester, User targetApprover, TaskItem task)
@@ -201,8 +309,10 @@ namespace WorkloadManagement.Application.Services
                 ApprovedBy = approval.ApprovedByUser?.FullName ?? string.Empty,
                 ApprovalStatus = approval.ApprovalStatus.ToString(),
                 RequestReason = approval.RequestReason,
-                RequestedAt = approval.RequestedAt,
-                ApprovedAt = approval.ApprovedAt
+                RequestedAt = DateTime.SpecifyKind(approval.RequestedAt, DateTimeKind.Utc),
+                ApprovedAt = approval.ApprovedAt.HasValue
+                    ? DateTime.SpecifyKind(approval.ApprovedAt.Value, DateTimeKind.Utc)
+                    : null
             };
         }
 

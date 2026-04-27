@@ -12,15 +12,18 @@ namespace WorkloadManagement.Application.Services
         private readonly ITaskRepository _taskRepository;
         private readonly IUserRepository _userRepository;
         private readonly ITaskAcknowledgementRepository _taskAcknowledgementRepository;
+        private readonly INotificationService _notificationService;
 
         public WorkloadService(
             ITaskRepository taskRepository,
             IUserRepository userRepository,
-            ITaskAcknowledgementRepository taskAcknowledgementRepository)
+            ITaskAcknowledgementRepository taskAcknowledgementRepository,
+            INotificationService notificationService)
         {
             _taskRepository = taskRepository;
             _userRepository = userRepository;
             _taskAcknowledgementRepository = taskAcknowledgementRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<TaskAcknowledgementDto> AcknowledgeTaskAsync(int taskId, int memberId)
@@ -31,6 +34,9 @@ namespace WorkloadManagement.Application.Services
 
             if (task.AssignedToUserId != memberId)
                 throw new Exception("You can only acknowledge your own assigned tasks.");
+
+            var member = await _userRepository.GetByIdAsync(memberId);
+            var isFirstAcknowledgement = false;
 
             var existingAcknowledgement =
                 await _taskAcknowledgementRepository.GetByTaskAndMemberAsync(taskId, memberId);
@@ -62,6 +68,47 @@ namespace WorkloadManagement.Application.Services
 
             await _taskAcknowledgementRepository.AddAsync(acknowledgement);
             await _taskAcknowledgementRepository.SaveChangesAsync();
+            isFirstAcknowledgement = true;
+
+            // Send notifications when task is acknowledged for the first time
+            if (isFirstAcknowledgement && member != null)
+            {
+                // Notify task creator (usually admin)
+                if (task.CreatedByUserId != memberId)
+                {
+                    var createdBy = await _userRepository.GetByIdAsync(task.CreatedByUserId);
+                    if (createdBy != null)
+                    {
+                        await _notificationService.CreateAsync(new WorkloadManagement.Application.DTOs.Notifications.CreateNotificationDto
+                        {
+                            UserId = task.CreatedByUserId,
+                            Type = WorkloadManagement.Domain.Enums.NotificationType.TaskAssigned,
+                            Title = "Task acknowledged",
+                            Message = $"{member.FullName} acknowledged \"{task.Title}\".",
+                            RelatedEntityId = task.Id,
+                            ActionUrl = "/my-tasks"
+                        });
+                    }
+                }
+
+                // Notify team leader if member has one
+                if (member?.TeamLeaderId.HasValue == true)
+                {
+                    var teamLeader = await _userRepository.GetByIdAsync(member.TeamLeaderId.Value);
+                    if (teamLeader != null && teamLeader.Id != task.CreatedByUserId)
+                    {
+                        await _notificationService.CreateAsync(new WorkloadManagement.Application.DTOs.Notifications.CreateNotificationDto
+                        {
+                            UserId = teamLeader.Id,
+                            Type = WorkloadManagement.Domain.Enums.NotificationType.TaskAssigned,
+                            Title = "Team member acknowledged task",
+                            Message = $"{member.FullName} acknowledged \"{task.Title}\".",
+                            RelatedEntityId = task.Id,
+                            ActionUrl = "/team-workload"
+                        });
+                    }
+                }
+            }
 
             return new TaskAcknowledgementDto
             {
