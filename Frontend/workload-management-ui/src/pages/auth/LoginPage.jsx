@@ -11,7 +11,7 @@ const floatingTransition = {
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, loading } = useAuth();
+  const { login, loading, initializing } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -20,6 +20,10 @@ const LoginPage = () => {
 
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  if (initializing) {
+    return <div>Loading...</div>;
+  }
 
   const handleChange = (e) => {
     setFormData((prev) => ({

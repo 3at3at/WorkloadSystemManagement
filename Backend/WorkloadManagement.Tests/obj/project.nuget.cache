@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "iqrm0vY3xwQ=",
+  "dgSpecHash": "SlWb+JND8oQ=",
   "success": true,
-  "projectFilePath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\Backend\\WorkloadManagement.Tests\\WorkloadManagement.Tests.csproj",
+  "projectFilePath": "C:\\Users\\user\\Desktop\\WorkloadManagementSystem\\backend\\workloadmanagement.tests\\WorkloadManagement.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\user\\.nuget\\packages\\castle.core\\5.1.1\\castle.core.5.1.1.nupkg.sha512",
     "C:\\Users\\user\\.nuget\\packages\\coverlet.collector\\6.0.4\\coverlet.collector.6.0.4.nupkg.sha512",

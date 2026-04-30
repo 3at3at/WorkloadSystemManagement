@@ -1,12 +1,9 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import {
-  getCurrentUserWithTokenRequest,
   loginRequest,
 } from "../api/authApi";
 import {
   clearAuthStorage,
-  getToken,
-  getUser,
   setToken,
   setUser,
 } from "../utils/storage";
@@ -14,11 +11,15 @@ import {
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [token, setTokenState] = useState(getToken());
-  const [user, setUserState] = useState(getUser());
+  const [token, setTokenState] = useState(null);
+  const [user, setUserState] = useState(null);
   const [loading, setLoading] = useState(false);
-  const currentToken = token ?? getToken();
-  const currentUser = user ?? getUser();
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    clearAuthStorage();
+    setInitializing(false);
+  }, []);
 
   const normalizeUserData = (data) => ({
     id: data.id,
@@ -44,14 +45,7 @@ export const AuthProvider = ({ children }) => {
       setToken(loginToken);
       setTokenState(loginToken);
 
-      let userData;
-
-      if (data?.id && data?.role) {
-        userData = normalizeUserData(data);
-      } else {
-        const me = await getCurrentUserWithTokenRequest(loginToken);
-        userData = normalizeUserData(me);
-      }
+      const userData = normalizeUserData(data);
 
       setUser(userData);
       setUserState(userData);
@@ -81,10 +75,11 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider
       value={{
-        token: currentToken,
-        user: currentUser,
+        token,
+        user,
         loading,
-        isAuthenticated: !!currentToken,
+        initializing,
+        isAuthenticated: !!token,
         login,
         logout,
       }}
