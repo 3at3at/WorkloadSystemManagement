@@ -49,29 +49,41 @@ const AdminDashboard = () => {
 
   return (
     <DashboardShell user={user} title="Admin Dashboard">
+      <div style={styles.roleBanner}>
+        <div style={styles.roleIcon}>🛡️</div>
+        <div>
+          <h2 style={styles.roleLabel}>System Administrator</h2>
+          <p style={styles.roleDesc}>You have full platform access — manage users, oversee all tasks, balance workloads, and handle escalated approvals across the entire system.</p>
+        </div>
+      </div>
+
       <div style={styles.grid}>
         <StatCard
           title="Total Users"
           value={stats.totalUsers}
           subtitle="All users except your own admin account"
+          accent="#fca5a5"
           loading={loading}
         />
         <StatCard
           title="Pending Approvals"
           value={stats.pendingApprovals}
           subtitle="Requests assigned to you for review"
+          accent="#fca5a5"
           loading={loading}
         />
         <StatCard
           title="Total Tasks"
           value={stats.totalTasks}
           subtitle="Tasks across the whole platform"
+          accent="#fca5a5"
           loading={loading}
         />
         <StatCard
           title="Overloaded Members"
           value={stats.overloadedMembers}
           subtitle="Members needing workload balancing"
+          accent="#fca5a5"
           loading={loading}
         />
       </div>
@@ -98,6 +110,34 @@ const AdminDashboard = () => {
 };
 
 const styles = {
+  roleBanner: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "20px",
+    padding: "24px 28px",
+    borderRadius: "24px",
+    background: "rgba(220,38,38,0.12)",
+    border: "1px solid rgba(220,38,38,0.3)",
+    backdropFilter: "blur(14px)",
+  },
+  roleIcon: {
+    fontSize: "48px",
+    lineHeight: 1,
+    flexShrink: 0,
+  },
+  roleLabel: {
+    color: "#fca5a5",
+    fontSize: "20px",
+    fontWeight: "800",
+    margin: "0 0 8px",
+    letterSpacing: "-0.01em",
+  },
+  roleDesc: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: "14px",
+    lineHeight: 1.7,
+    margin: 0,
+  },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -111,8 +151,8 @@ const styles = {
   bigCard: {
     padding: "26px",
     borderRadius: "24px",
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(220,38,38,0.08)",
+    border: "1px solid rgba(220,38,38,0.2)",
     backdropFilter: "blur(14px)",
     minHeight: "220px",
   },
@@ -120,7 +160,7 @@ const styles = {
     fontSize: "22px",
     fontWeight: "800",
     marginBottom: "14px",
-    color: "#fff",
+    color: "#fca5a5",
   },
   cardText: {
     color: "rgba(255,255,255,0.82)",

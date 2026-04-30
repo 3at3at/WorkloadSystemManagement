@@ -48,6 +48,42 @@ const DashboardShell = ({ user, title, children }) => {
   const isAdmin = user?.role === "Admin";
   const isLeader = user?.role === "TeamLeader";
 
+  const roleAccent = isAdmin
+    ? {
+        color: "#fca5a5",
+        borderColor: "rgba(220,38,38,0.5)",
+        glowOne: "rgba(220,38,38,0.18)",
+        glowTwo: "rgba(220,38,38,0.12)",
+        avatarGradient: "linear-gradient(135deg, #f87171, #dc2626)",
+        navActive: "linear-gradient(135deg, rgba(220,38,38,0.4), rgba(239,68,68,0.22))",
+        badgeBg: "rgba(220,38,38,0.18)",
+        badgeBorder: "rgba(220,38,38,0.45)",
+        label: "Admin",
+      }
+    : isLeader
+    ? {
+        color: "#a5b4fc",
+        borderColor: "rgba(99,102,241,0.5)",
+        glowOne: "rgba(99,102,241,0.18)",
+        glowTwo: "rgba(99,102,241,0.12)",
+        avatarGradient: "linear-gradient(135deg, #818cf8, #4f46e5)",
+        navActive: "linear-gradient(135deg, rgba(79,70,229,0.45), rgba(99,102,241,0.28))",
+        badgeBg: "rgba(99,102,241,0.18)",
+        badgeBorder: "rgba(99,102,241,0.45)",
+        label: "Team Leader",
+      }
+    : {
+        color: "#6ee7b7",
+        borderColor: "rgba(5,150,105,0.5)",
+        glowOne: "rgba(5,150,105,0.18)",
+        glowTwo: "rgba(16,185,129,0.12)",
+        avatarGradient: "linear-gradient(135deg, #34d399, #059669)",
+        navActive: "linear-gradient(135deg, rgba(5,150,105,0.4), rgba(16,185,129,0.22))",
+        badgeBg: "rgba(5,150,105,0.18)",
+        badgeBorder: "rgba(5,150,105,0.45)",
+        label: "Member",
+      };
+
   const navItems = isAdmin
     ? [
         { label: "Dashboard", path: "/admin/dashboard" },
@@ -115,9 +151,9 @@ const DashboardShell = ({ user, title, children }) => {
   }, [location.pathname]);
 
   const sidebarContent = (
-    <div style={styles.sidebarInner}>
+    <div style={{ ...styles.sidebarInner, borderTop: `3px solid ${roleAccent.borderColor}` }}>
       <div style={styles.brandCard}>
-        <div style={styles.brandIcon}>W</div>
+        <div style={{ ...styles.brandIcon, background: roleAccent.avatarGradient, boxShadow: `0 14px 28px ${roleAccent.glowOne}` }}>W</div>
         <div>
           <h2 style={styles.brandTitle}>Workload Pro</h2>
           <p style={styles.brandSubtitle}>Team Management</p>
@@ -125,10 +161,10 @@ const DashboardShell = ({ user, title, children }) => {
       </div>
 
       <div style={styles.profileCard}>
-        <div style={styles.avatar}>{getInitial(user?.fullName)}</div>
+        <div style={{ ...styles.avatar, background: roleAccent.avatarGradient, boxShadow: `0 8px 24px ${roleAccent.glowOne}` }}>{getInitial(user?.fullName)}</div>
         <div style={{ minWidth: 0 }}>
           <h3 style={styles.profileName}>{user?.fullName || "User"}</h3>
-          <p style={styles.profileRole}>{user?.role === "TeamLeader" ? "Team Leader" : (user?.role || "Role")}</p>
+          <p style={{ ...styles.profileRole, color: roleAccent.color }}>{roleAccent.label}</p>
         </div>
       </div>
 
@@ -147,7 +183,7 @@ const DashboardShell = ({ user, title, children }) => {
                 transition={{ duration: 0.2 }}
                 style={{
                   ...styles.navLink,
-                  ...(isActive ? styles.navLinkActive : {}),
+                  ...(isActive ? { ...styles.navLinkActive, background: roleAccent.navActive } : {}),
                 }}
               >
                 <span>{item.label}</span>
@@ -261,8 +297,8 @@ const DashboardShell = ({ user, title, children }) => {
       </style>
 
       <div style={styles.page}>
-        <div style={styles.backgroundGlowOne} />
-        <div style={styles.backgroundGlowTwo} />
+        <div style={{ ...styles.backgroundGlowOne, background: roleAccent.glowOne }} />
+        <div style={{ ...styles.backgroundGlowTwo, background: roleAccent.glowTwo }} />
 
         {!isTabletOrMobile && (
           <aside style={styles.desktopSidebar}>
@@ -410,7 +446,9 @@ const DashboardShell = ({ user, title, children }) => {
                 </AnimatePresence>
               </div>
 
-              <div style={styles.roleBadge}>{user?.role}</div>
+              <div style={{ ...styles.roleBadge, background: roleAccent.badgeBg, border: `1px solid ${roleAccent.badgeBorder}`, color: roleAccent.color }}>
+                {roleAccent.label}
+              </div>
             </div>
           </div>
 

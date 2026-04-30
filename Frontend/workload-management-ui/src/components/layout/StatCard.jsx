@@ -1,6 +1,6 @@
-const StatCard = ({ title, value, subtitle, loading = false }) => {
+const StatCard = ({ title, value, subtitle, loading = false, accent }) => {
   return (
-    <div style={styles.card}>
+    <div style={{ ...styles.card, ...(accent ? { borderTop: `3px solid ${accent}` } : {}) }}>
       <style>{`
         @keyframes statCardShimmer {
           0% { background-position: 200% 0; }
@@ -17,7 +17,7 @@ const StatCard = ({ title, value, subtitle, loading = false }) => {
         </div>
       ) : (
         <>
-          <h3 style={styles.value}>{value}</h3>
+          <h3 style={{ ...styles.value, ...(accent ? { color: accent, textShadow: `0 6px 24px ${accent}55` } : {}) }}>{value}</h3>
           <p style={styles.subtitle}>{subtitle}</p>
         </>
       )}

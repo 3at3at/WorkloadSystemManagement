@@ -49,29 +49,41 @@ const TeamLeaderDashboard = () => {
 
   return (
     <DashboardShell user={user} title="Team Leader Dashboard">
+      <div style={styles.roleBanner}>
+        <div style={styles.roleIcon}>🧠</div>
+        <div>
+          <h2 style={styles.roleLabel}>Team Leader</h2>
+          <p style={styles.roleDesc}>You oversee your team's workload — assign and track tasks within your scope, review member approval requests, and escalate decisions to Admin when needed.</p>
+        </div>
+      </div>
+
       <div style={styles.grid}>
         <StatCard
           title="Assigned Tasks"
           value={stats.assignedTasks}
           subtitle="Tasks under your leadership scope"
+          accent="#a5b4fc"
           loading={loading}
         />
         <StatCard
           title="Pending Approvals"
           value={stats.pendingApprovals}
           subtitle="Requests sent to you by members"
+          accent="#a5b4fc"
           loading={loading}
         />
         <StatCard
           title="Balanced Members"
           value={stats.balancedMembers}
           subtitle="Members with healthy workload"
+          accent="#a5b4fc"
           loading={loading}
         />
         <StatCard
           title="Overloaded Members"
           value={stats.overloadedMembers}
           subtitle="Members who may need support"
+          accent="#a5b4fc"
           loading={loading}
         />
       </div>
@@ -89,6 +101,34 @@ const TeamLeaderDashboard = () => {
 };
 
 const styles = {
+  roleBanner: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "20px",
+    padding: "24px 28px",
+    borderRadius: "24px",
+    background: "rgba(99,102,241,0.12)",
+    border: "1px solid rgba(99,102,241,0.3)",
+    backdropFilter: "blur(14px)",
+  },
+  roleIcon: {
+    fontSize: "48px",
+    lineHeight: 1,
+    flexShrink: 0,
+  },
+  roleLabel: {
+    color: "#a5b4fc",
+    fontSize: "20px",
+    fontWeight: "800",
+    margin: "0 0 8px",
+    letterSpacing: "-0.01em",
+  },
+  roleDesc: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: "14px",
+    lineHeight: 1.7,
+    margin: 0,
+  },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -97,15 +137,15 @@ const styles = {
   panel: {
     padding: "26px",
     borderRadius: "24px",
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(99,102,241,0.08)",
+    border: "1px solid rgba(99,102,241,0.2)",
     minHeight: "220px",
   },
   title: {
     fontSize: "22px",
     fontWeight: "800",
     marginBottom: "14px",
-    color: "#fff",
+    color: "#a5b4fc",
   },
   text: {
     color: "rgba(255,255,255,0.82)",
